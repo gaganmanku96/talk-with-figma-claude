@@ -1,0 +1,16 @@
+FROM node:18-slim
+
+WORKDIR /app
+
+# Copy package file
+COPY package.json ./
+# Try to copy package-lock.json, but don't fail if it doesn't exist
+COPY package-lock.json* ./
+RUN npm install
+
+# Copy the rest of the application
+COPY . .
+
+# This container will be executed by Claude Desktop with -i flag
+# to access stdin/stdout, no CMD needed
+ENTRYPOINT ["node", "mcp-server.js"]

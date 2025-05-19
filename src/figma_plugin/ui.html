@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Talk to Figma Claude</title>
+  <style>
+    :root {
+      --figma-color-bg: #ffffff;
+      --figma-color-text: #333333;
+      --figma-color-border: #e6e6e6;
+      --figma-color-blue: #18a0fb;
+      --figma-color-green: #31c48d;
+      --figma-color-red: #f24822;
+      --figma-color-yellow: #ffeb3b;
+      --figma-radius: 6px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 0;
+      color: var(--figma-color-text);
+      background-color: var(--figma-color-bg);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+
+    h1 {
+      font-size: 18px;
+      margin: 0 0 16px 0;
+      text-align: center;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    .logo {
+      width: 40px;
+      height: 40px;
+      margin-right: 8px;
+    }
+
+    .status-container {
+      display: flex;
+      align-items: center;
+      margin-bottom: 16px;
+      border: 1px solid var(--figma-color-border);
+      border-radius: var(--figma-radius);
+      padding: 8px;
+    }
+
+    .status-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    .disconnected {
+      background-color: var(--figma-color-red);
+    }
+
+    .connecting {
+      background-color: var(--figma-color-yellow);
+    }
+
+    .connected {
+      background-color: var(--figma-color-green);
+    }
+
+    .status-text {
+      flex-grow: 1;
+    }
+
+    .input-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+
+    input {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+      border: 1px solid var(--figma-color-border);
+      border-radius: var(--figma-radius);
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--figma-color-blue);
+    }
+
+    .button {
+      background-color: var(--figma-color-blue);
+      color: white;
+      border: none;
+      border-radius: var(--figma-radius);
+      padding: 8px 16px;
+      cursor: pointer;
+      font-weight: 500;
+      margin-bottom: 16px;
+      width: 100%;
+      transition: background-color 0.2s;
+    }
+
+    .button:hover {
+      background-color: #0d8ee9;
+    }
+
+    .button:active {
+      background-color: #0c7dcf;
+    }
+
+    .button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+
+    .log-container {
+      flex-grow: 1;
+      border: 1px solid var(--figma-color-border);
+      border-radius: var(--figma-radius);
+      padding: 8px;
+      overflow-y: auto;
+      background-color: #f9f9f9;
+      margin-bottom: 16px;
+    }
+
+    .log-entry {
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--figma-color-border);
+      word-wrap: break-word;
+    }
+
+    .log-entry:last-child {
+      margin-bottom: 0;
+      border-bottom: none;
+    }
+
+    .log-timestamp {
+      font-size: 12px;
+      color: #888888;
+      margin-right: 4px;
+    }
+
+    .log-info {
+      color: var(--figma-color-blue);
+    }
+
+    .log-success {
+      color: var(--figma-color-green);
+    }
+
+    .log-warning {
+      color: #f5a623;
+    }
+
+    .log-error {
+      color: var(--figma-color-red);
+    }
+
+    footer {
+      text-align: center;
+      font-size: 12px;
+      color: #888888;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo-container">
+      <h1>Talk to Figma Claude</h1>
+    </div>
+
+    <div class="status-container">
+      <div id="status-indicator" class="status-indicator disconnected"></div>
+      <div id="status-text" class="status-text">Disconnected</div>
+    </div>
+
+    <div class="input-group">
+      <label for="websocket-url">WebSocket Server URL</label>
+      <input type="text" id="websocket-url" placeholder="ws://localhost:3600" value="ws://localhost:3600">
+    </div>
+
+    <div class="input-group">
+      <label for="channel-id">Channel ID</label>
+      <input type="text" id="channel-id" placeholder="Leave empty to create a new channel">
+    </div>
+
+    <button id="connect-button" class="button">Connect</button>
+
+    <div class="log-container" id="log-container"></div>
+
+    <footer>
+      <p>Talk to Figma Claude MCP Integration</p>
+    </footer>
+  </div>
+
+  <script>
+    // Plugin communication
+    const parent = window.parent;
+    let isConnected = false;
+    let ws = null;
+    
+    // DOM elements
+    const statusIndicator = document.getElementById('status-indicator');
+    const statusText = document.getElementById('status-text');
+    const websocketUrlInput = document.getElementById('websocket-url');
+    const channelIdInput = document.getElementById('channel-id');
+    const connectButton = document.getElementById('connect-button');
+    const logContainer = document.getElementById('log-container');
+    
+    // Function to update the connection status UI
+    function updateStatus(status, message) {
+      statusIndicator.className = 'status-indicator ' + status;
+      statusText.textContent = message;
+      
+      if (status === 'connected') {
+        connectButton.textContent = 'Disconnect';
+        isConnected = true;
+      } else {
+        connectButton.textContent = 'Connect';
+        isConnected = false;
+      }
+    }
+    
+    // Function to add a log entry
+    function addLogEntry(message, type = 'info') {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      
+      const timestamp = document.createElement('span');
+      timestamp.className = 'log-timestamp';
+      timestamp.textContent = new Date().toLocaleTimeString();
+      
+      const content = document.createElement('span');
+      content.className = 'log-' + type;
+      content.textContent = message;
+      
+      entry.appendChild(timestamp);
+      entry.appendChild(content);
+      logContainer.appendChild(entry);
+      
+      // Scroll to bottom
+      logContainer.scrollTop = logContainer.scrollHeight;
+    }
+    
+    // Function to connect to the WebSocket server
+    function connectWebSocket() {
+      if (ws) {
+        ws.close();
+      }
+      
+      const url = websocketUrlInput.value.trim();
+      
+      if (!url) {
+        addLogEntry('Please enter a WebSocket URL', 'error');
+        return;
+      }
+      
+      updateStatus('connecting', 'Connecting...');
+      addLogEntry(`Connecting to ${url}...`);
+      
+      try {
+        ws = new WebSocket(url);
+        
+        ws.onopen = function() {
+          updateStatus('connected', 'Connected');
+          addLogEntry('Connected to WebSocket server', 'success');
+          
+          // Join a channel
+          const channelId = channelIdInput.value.trim();
+          joinChannel(channelId);
+        };
+        
+        ws.onmessage = function(event) {
+          try {
+            const data = JSON.parse(event.data);
+            handleWebSocketMessage(data);
+          } catch (error) {
+            addLogEntry('Error parsing message: ' + error.message, 'error');
+          }
+        };
+        
+        ws.onclose = function() {
+          updateStatus('disconnected', 'Disconnected');
+          addLogEntry('Disconnected from WebSocket server', 'warning');
+          ws = null;
+        };
+        
+        ws.onerror = function(error) {
+          updateStatus('disconnected', 'Connection error');
+          addLogEntry('WebSocket error: ' + error.message, 'error');
+        };
+      } catch (error) {
+        updateStatus('disconnected', 'Connection failed');
+        addLogEntry('Failed to connect: ' + error.message, 'error');
+      }
+    }
+    
+    // Function to disconnect from the WebSocket server
+    function disconnectWebSocket() {
+      if (ws) {
+        ws.close();
+      }
+    }
+    
+    // Function to join a channel
+    function joinChannel(channelId) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        addLogEntry('Not connected to WebSocket server', 'error');
+        return;
+      }
+      
+      const message = {
+        type: 'join_channel',
+        channelId: channelId || undefined
+      };
+      
+      ws.send(JSON.stringify(message));
+      
+      if (channelId) {
+        addLogEntry(`Joining channel: ${channelId}`);
+      } else {
+        addLogEntry('Creating a new channel...');
+      }
+    }
+    
+    // Function to handle WebSocket messages
+    function handleWebSocketMessage(data) {
+      switch (data.type) {
+        case 'connected':
+          addLogEntry(data.message, 'info');
+          break;
+          
+        case 'channel_joined':
+          channelIdInput.value = data.channelId;
+          addLogEntry(`Joined channel: ${data.channelId}`, 'success');
+          break;
+          
+        case 'figma_command':
+          addLogEntry(`Received command: ${data.command}`, 'info');
+          // Forward to the plugin
+          parent.postMessage({ pluginMessage: { 
+            type: 'websocket_message',
+            data: data
+          }}, '*');
+          break;
+          
+        case 'error':
+          addLogEntry(`Error: ${data.message}`, 'error');
+          break;
+          
+        default:
+          addLogEntry(`Received message: ${JSON.stringify(data)}`, 'info');
+      }
+    }
+    
+    // Connect/disconnect button click event
+    connectButton.addEventListener('click', function() {
+      if (isConnected) {
+        disconnectWebSocket();
+      } else {
+        connectWebSocket();
+      }
+    });
+    
+    // Handle messages from the plugin
+    window.onmessage = function(event) {
+      const message = event.data.pluginMessage;
+      
+      if (!message) return;
+      
+      switch (message.type) {
+        case 'plugin_ready':
+          addLogEntry('Plugin is ready', 'success');
+          break;
+          
+        case 'websocket_send':
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify(message.data));
+            addLogEntry(`Sent response for command: ${message.data.type}`, 'success');
+          } else {
+            addLogEntry('Cannot send message: WebSocket is not connected', 'error');
+          }
+          break;
+          
+        case 'error':
+          addLogEntry(`Plugin error: ${message.message}`, 'error');
+          break;
+      }
+    };
+    
+    // Initialize
+    addLogEntry('Plugin UI initialized', 'info');
+    addLogEntry('Connect to the WebSocket server to begin', 'info');
+    
+    // Save WebSocket URL to localStorage
+    websocketUrlInput.addEventListener('change', function() {
+      localStorage.setItem('websocketUrl', websocketUrlInput.value);
+    });
+    
+    // Load WebSocket URL from localStorage
+    const savedUrl = localStorage.getItem('websocketUrl');
+    if (savedUrl) {
+      websocketUrlInput.value = savedUrl;
+    }
+    
+    // Copy channel ID button
+    function addCopyButton() {
+      const copyButton = document.createElement('button');
+      copyButton.textContent = 'Copy';
+      copyButton.className = 'button';
+      copyButton.style.width = 'auto';
+      copyButton.style.marginLeft = '8px';
+      copyButton.style.marginBottom = '0';
+      copyButton.style.padding = '4px 8px';
+      
+      copyButton.addEventListener('click', function() {
+        const channelId = channelIdInput.value.trim();
+        if (channelId) {
+          navigator.clipboard.writeText(channelId)
+            .then(() => {
+              addLogEntry('Channel ID copied to clipboard', 'success');
+            })
+            .catch(err => {
+              addLogEntry('Failed to copy: ' + err, 'error');
+            });
+        } else {
+          addLogEntry('No channel ID to copy', 'warning');
+        }
+      });
+      
+      const inputGroup = channelIdInput.parentElement;
+      inputGroup.style.display = 'flex';
+      inputGroup.style.alignItems = 'flex-end';
+      
+      channelIdInput.style.marginRight = '8px';
+      inputGroup.appendChild(copyButton);
+    }
+    
+    addCopyButton();
+  </script>
+</body>
+</html>
