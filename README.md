@@ -6,6 +6,12 @@ YT Video: https://www.youtube.com/watch?v=-LA_Ew7GhC4
 
 https://github.com/user-attachments/assets/68dcc372-3605-477f-ab43-8fe076eed99c
 
+## Screenshots
+
+<img src="https://github.com/user-attachments/assets/483b5473-d42a-4437-96e9-5eea4d6c2e6e" width="280">
+
+<img src="https://github.com/user-attachments/assets/f28fab79-d623-40e3-8fd3-66d6c76c2c9f" width="280">
+
 ## Prerequisites
 
 - Node.js 14+ and npm
