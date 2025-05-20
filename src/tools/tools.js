@@ -83,17 +83,21 @@ const tools = {
   },
   // Connection tools
   join_channel: {
-    description: 'Join a specific channel to communicate with Figma',
+    description: 'Join a specific channel to communicate with Figma and get design guidelines',
     parameters: {
       type: 'object',
       properties: {
         channelId: {
           type: 'string',
           description: 'Optional channel ID to join. If not provided, a new channel will be created.'
+        },
+        includeDesignHelp: {
+          type: 'boolean',
+          description: 'Whether to include design guidelines and strategy (default: true)'
         }
       }
     },
-    handler: async ({ channelId }) => {
+    handler: async ({ channelId, includeDesignHelp = true }) => {
       const ws = getWebSocketClient();
       
       if (!ws) {
@@ -150,12 +154,35 @@ const tools = {
         // Race the join promise against the timeout
         try {
           const joinedChannelId = await Promise.race([joinPromise, timeoutPromise]);
-          return { 
+          const result = { 
             message: `Successfully joined channel: ${joinedChannelId}`,
             status: 'success',
             channelId: joinedChannelId,
             tip: 'Make sure to also run the Figma plugin and join the same channel'
           };
+          
+          // Add design help if requested
+          if (includeDesignHelp) {
+            // Get core design principles
+            const coreDesignPrinciples = tools.ui_design_guidelines.handler({ section: 'core_principles' }).guidelines.trim();
+            
+            // Get design strategy first step
+            const designStrategy = tools.design_strategy.handler().strategy.trim();
+            const strategyFirstSection = designStrategy.split('##')[1];
+            
+            result.designHelp = {
+              message: "🎨 Design resources automatically loaded!",
+              summary: "I've included design guidelines and strategy to help create effective UI designs. Use the full tools for more details:",
+              principles: coreDesignPrinciples.split('\n').slice(0, 7).join('\n'),
+              strategy: `## ${strategyFirstSection}`,
+              tools: [
+                "design_strategy - Get comprehensive Figma design strategy",
+                "ui_design_guidelines - View detailed UI/UX best practices"
+              ]
+            };
+          }
+          
+          return result;
         } catch (e) {
           // If we timeout, still return a pending message
           return { 
