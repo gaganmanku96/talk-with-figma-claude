@@ -2,7 +2,7 @@
 
 This project enables Claude Desktop App to control Figma through the MCP (Model Context Protocol) and WebSocket communication. It extends the original [cursor-talk-to-figma-mcp](https://github.com/sonnylazuardi/cursor-talk-to-figma-mcp) to work with Claude Desktop App via stdio.
 
-
+YT Video: https://www.youtube.com/watch?v=-LA_Ew7GhC4
 https://github.com/user-attachments/assets/68dcc372-3605-477f-ab43-8fe076eed99c
 
 ## Prerequisites
