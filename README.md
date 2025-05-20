@@ -2,34 +2,13 @@
 
 This project enables Claude Desktop App to control Figma through the MCP (Model Context Protocol) and WebSocket communication. It extends the original [cursor-talk-to-figma-mcp](https://github.com/sonnylazuardi/cursor-talk-to-figma-mcp) to work with Claude Desktop App via stdio.
 
-[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/-LA_Ew7GhC4/0.jpg)](https://www.youtube.com/watch?v=-LA_Ew7GhC4)
 
-## Architecture
-
-The project consists of three main components:
-
-1. **WebSocket Server**: Enables real-time communication between Figma and the MCP server
-2. **MCP Server**: Handles the Model Context Protocol communication with Claude
-3. **Claude Bridge**: Connects Claude Desktop App's stdio interface with the MCP server
-
-```
-                  ┌──────────────┐
-                  │Claude Desktop│
-                  └───────┬──────┘
-                          │
-                          │ STDIO
-                          ▼
-┌─────────────────┐    ┌────────────┐    ┌─────────────┐
-│Figma Plugin     │◄──►│MCP Server  │◄───┤WebSocket    │
-│(in Figma)       │    │+ STDIO     │    │Server       │
-│                 │    │Bridge      │    │             │
-└─────────────────┘    └────────────┘    └─────────────┘
-```
+https://github.com/user-attachments/assets/68dcc372-3605-477f-ab43-8fe076eed99c
 
 ## Prerequisites
 
 - Node.js 14+ and npm
-- Figma desktop application with the Figma MCP plugin installed
+- Figma desktop application 
 
 ## Installation
 
@@ -75,6 +54,37 @@ This will start all necessary components:
 3. In Claude, use the following tool commands:
    - First use `join_channel` to establish a connection
    - Then use various Figma tools like `create_rectangle`, `get_document_info`, etc.
+
+### Adding plugin in Figma
+1. Go to Actions in Figma
+   
+<img src="https://github.com/user-attachments/assets/d43bf4bc-5177-4bad-9947-55445e4f014b" width="280">
+
+3. Click on import from manifest
+   
+<img src="https://github.com/user-attachments/assets/0267c5ca-0d0e-40af-81f9-18a7dc54ae61" width="280">
+
+4. Select the manifest file
+   > talk-with-figma-claude > src > figma_plugin > manifest.json
+
+### Connecting with Claude
+You'll have to add following in Claude MCP Config
+```
+{
+  "mcpServers": {
+    "TalkToFigma": {
+      "command": "node",
+      "args": [
+        "~/talk_to_figma_claude/src/mcp-server/mcp-server.js"
+      ],
+      "env": {}
+    }
+  }
+}
+
+
+```
+talk_to_figma_claude\src\mcp-server\mcp-server.js
 
 ## Available Tools
 
