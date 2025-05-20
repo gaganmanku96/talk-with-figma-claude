@@ -1,4 +1,5 @@
-rm // The functions will be set later to avoid circular dependencies
+// Basic Figma tools - renamed from tools.js
+// Functions will be set later to avoid circular dependencies
 let sendFigmaCommand;
 let getActiveChannelId;
 let setActiveChannelId;
@@ -6,7 +7,7 @@ let getWebSocketClient;
 const WebSocket = require('ws');
 
 // Define the MCP tools
-const tools = {
+const basicTools = {
   // Connection status tools
   connection_status: {
     description: 'Get the current connection status to check if everything is working correctly',
@@ -1504,11 +1505,11 @@ const tools = {
 };
 
 // Function to initialize the tools with MCP server functions
-function initializeTools(mcpServer) {
+function initializeBasicTools(mcpServer) {
   sendFigmaCommand = mcpServer.sendFigmaCommand;
   getActiveChannelId = mcpServer.getActiveChannelId;
   setActiveChannelId = mcpServer.setActiveChannelId;
   getWebSocketClient = mcpServer.getWebSocketClient;
 }
 
-module.exports = { tools, initializeTools };
+module.exports = { basicTools, initializeBasicTools };

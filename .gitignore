@@ -1,11 +1,5 @@
 # Dependencies
-/node_modules
-yarn.lock
-package-lock.json
-
-# Build output
-/dist
-/build
+node_modules/
 
 # Environment variables
 .env
@@ -15,24 +9,29 @@ package-lock.json
 .env.production.local
 
 # Logs
-/logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Build output
+dist/
+build/
+
 # IDE and editor files
-.idea/
 .vscode/
+.idea/
 *.swp
 *.swo
+*.sublime-*
 .DS_Store
+Thumbs.db
 
 # Temporary files
 .tmp/
 .temp/
 .cache/
-.deleted/
 
 # Docker
 .dockerignore

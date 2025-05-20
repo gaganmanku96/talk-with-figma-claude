@@ -2,17 +2,20 @@
   "name": "talk-to-figma-claude",
   "version": "0.1.0",
   "description": "MCP integration between Claude Desktop and Figma",
-  "main": "dist/index.js",
+  "main": "src/index.js",
   "scripts": {
     "build": "tsc && node scripts/postbuild.js",
-    "start:websocket": "node websocket-server.js",
-    "start:mcp": "node mcp-server.js",
+    "start:websocket": "node src/websocket-server/websocket-server.js",
+    "start:mcp": "node src/mcp-server/mcp-server.js",
     "start": "concurrently \"npm run start:websocket\" \"npm run start:mcp\"",
     "install-plugin": "node scripts/install-plugin.js",
-    "configure-claude": "node scripts/configure-claude.js"
+    "configure-claude": "node scripts/configure-claude.js",
+    "claude": "node scripts/claude-start.js",
+    "monitor": "node scripts/server-monitor.js",
+    "watchdog": "node scripts/watchdog.js"
   },
   "bin": {
-    "talk-to-figma-claude": "./dist/index.js"
+    "talk-to-figma-claude": "./src/index.js"
   },
   "keywords": [
     "claude",

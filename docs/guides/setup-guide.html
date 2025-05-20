@@ -1,0 +1,135 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Talk to Figma - Setup</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #6542f4;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        h2 {
+            margin-top: 30px;
+            color: #6542f4;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        code {
+            font-family: Menlo, Monaco, Consolas, 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .highlight {
+            background-color: #fffcd7;
+            padding: 15px;
+            border-left: 4px solid #ffcc00;
+            margin: 20px 0;
+        }
+        .steps {
+            counter-reset: step;
+            margin-left: 0;
+            padding-left: 0;
+        }
+        .steps li {
+            position: relative;
+            margin: 0 0 20px 0;
+            padding-left: 35px;
+            list-style: none;
+        }
+        .steps li:before {
+            content: counter(step);
+            counter-increment: step;
+            position: absolute;
+            left: 0;
+            top: 2px;
+            width: 25px;
+            height: 25px;
+            line-height: 25px;
+            background-color: #6542f4;
+            color: white;
+            text-align: center;
+            border-radius: 50%;
+        }
+        .button {
+            display: inline-block;
+            background-color: #6542f4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 10px 0;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .button:hover {
+            background-color: #5230e4;
+        }
+    </style>
+</head>
+<body>
+    <h1>Claude Talk to Figma - Setup Guide</h1>
+    
+    <div class="highlight">
+        <strong>First time setup:</strong> Follow these steps to connect Claude Desktop App with Figma.
+    </div>
+    
+    <h2>Step 1: Setup Figma Plugin</h2>
+    <ol class="steps">
+        <li>In Figma, go to <strong>Plugins > Development > New Plugin</strong></li>
+        <li>Choose <strong>"Link existing plugin"</strong></li>
+        <li>Select the <code>src/cursor_mcp_plugin/manifest.json</code> file from this installation</li>
+        <li>The plugin should now be available in your Figma development plugins</li>
+    </ol>
+    
+    <h2>Step 2: Start the Servers</h2>
+    <p>The servers are now running in the background. Please keep the terminal window open!</p>
+    
+    <h2>Step 3: Configure Claude Desktop App</h2>
+    <ol class="steps">
+        <li>Open Claude Desktop App</li>
+        <li>Go to <strong>Settings > MCPs</strong></li>
+        <li>Add a new MCP called "ClaudeTalkToFigma" with these settings:
+            <pre><code>Command: node
+Args: /home/gagan/projects/talk_to_figma_claude/mcp-server.js
+Working directory: /home/gagan/projects/talk_to_figma_claude</code></pre>
+        </li>
+        <li>Enable the MCP by toggling it on</li>
+    </ol>
+    
+    <h2>Step 4: Using the Integration</h2>
+    <ol class="steps">
+        <li>Open Figma and run the plugin (from the Plugins > Development menu)</li>
+        <li>In the plugin, click "Generate Channel" and copy the channel ID</li>
+        <li>In Claude, send the command: <code>join_channel {"channelId": "PASTE_CHANNEL_ID_HERE"}</code></li>
+        <li>You're now ready to control Figma with Claude!</li>
+    </ol>
+    
+    <div class="highlight">
+        <p><strong>Having issues?</strong> Check the logs in the terminal window for detailed error messages.</p>
+    </div>
+    
+    <h2>Example Commands</h2>
+    <p>After joining a channel, try these commands in Claude:</p>
+    <pre><code>get_document_info
+
+get_selection
+
+create_rectangle {"x": 100, "y": 100, "width": 200, "height": 100, "name": "My Rectangle"}
+
+create_text {"x": 100, "y": 300, "text": "Hello from Claude!", "fontSize": 24}</code></pre>
+</body>
+</html>

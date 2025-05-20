@@ -27,6 +27,12 @@ const wss = new WebSocket.Server({ server });
 
 console.log(`WebSocket server starting on ${HOST}:${PORT}`);
 
+// Set up a health check interval
+setInterval(() => {
+  const clientCount = wss.clients.size;
+  console.log(`WebSocket server health check: ${clientCount} clients connected`);
+}, 30000); // Every 30 seconds
+
 wss.on('connection', (ws) => {
   console.log('Client connected');
 

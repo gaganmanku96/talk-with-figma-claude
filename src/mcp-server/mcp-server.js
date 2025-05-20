@@ -3,7 +3,7 @@ const http = require('http');
 const WebSocket = require('ws');
 const dotenv = require('dotenv');
 const readline = require('readline');
-const { tools, initializeTools } = require('./tools');
+const { tools, initializeTools } = require('../../src/tools/tools');
 const { EventEmitter } = require('events');
 
 // Load environment variables
