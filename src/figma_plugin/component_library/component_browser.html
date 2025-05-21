@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Component Library Browser</title>
+  <style>
+    :root {
+      --figma-color-bg: #ffffff;
+      --figma-color-text: #333333;
+      --figma-color-border: #e6e6e6;
+      --figma-color-blue: #18a0fb;
+      --figma-color-green: #31c48d;
+      --figma-color-red: #f24822;
+      --figma-color-yellow: #ffeb3b;
+      --figma-radius: 6px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 0;
+      color: var(--figma-color-text);
+      background-color: var(--figma-color-bg);
+      font-size: 14px;
+      line-height: 1.5;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    /* Component Library Browser Styles */
+    .component-library {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+    }
+    
+    .component-library-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--figma-color-border);
+    }
+    
+    .component-library-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    
+    .component-library-search {
+      width: 100%;
+      margin-bottom: 8px;
+    }
+    
+    .component-filter-pill {
+      background: #f0f0f0;
+      border-radius: 16px;
+      padding: 4px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    
+    .component-filter-pill.active {
+      background: #e0f0ff;
+      border: 1px solid var(--figma-color-blue);
+      color: var(--figma-color-blue);
+    }
+    
+    .component-library-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+    
+    .component-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 16px;
+    }
+    
+    .component-card {
+      border: 1px solid var(--figma-color-border);
+      border-radius: var(--figma-radius);
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .component-card:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border-color: var(--figma-color-blue);
+    }
+    
+    .component-thumbnail {
+      height: 100px;
+      background-color: #f9f9f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    
+    .component-thumbnail img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    
+    .component-info {
+      padding: 8px;
+      font-size: 12px;
+    }
+    
+    .component-name {
+      font-weight: 600;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .component-meta {
+      color: #888;
+      font-size: 10px;
+      display: flex;
+      justify-content: space-between;
+    }
+    
+    .component-detail-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    
+    .component-detail-modal.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    
+    .component-detail-content {
+      background: white;
+      border-radius: var(--figma-radius);
+      width: 80%;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+      padding: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    }
+    
+    .component-detail-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    
+    .component-detail-header h2 {
+      margin: 0;
+      font-size: 16px;
+    }
+    
+    .component-detail-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    
+    .component-properties {
+      margin-top: 16px;
+      border-top: 1px solid var(--figma-color-border);
+      padding-top: 16px;
+    }
+    
+    .property-row {
+      display: flex;
+      margin-bottom: 8px;
+    }
+    
+    .property-label {
+      font-weight: 500;
+      width: 120px;
+      flex-shrink: 0;
+    }
+    
+    .property-value {
+      flex: 1;
+    }
+    
+    .component-variants {
+      margin-top: 16px;
+      border-top: 1px solid var(--figma-color-border);
+      padding-top: 16px;
+    }
+    
+    .tab-group {
+      display: flex;
+      border-bottom: 1px solid var(--figma-color-border);
+      margin-bottom: 16px;
+    }
+    
+    .tab {
+      padding: 8px 16px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+    
+    .tab.active {
+      border-bottom-color: var(--figma-color-blue);
+      color: var(--figma-color-blue);
+    }
+    
+    /* Category sections */
+    .category-section {
+      margin-bottom: 24px;
+    }
+    
+    .category-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #333;
+    }
+
+    .button {
+      background-color: var(--figma-color-blue);
+      color: white;
+      border: none;
+      border-radius: var(--figma-radius);
+      padding: 8px 16px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+
+    .button:hover {
+      background-color: #0d8ee9;
+    }
+
+    .button.secondary {
+      background-color: transparent;
+      color: var(--figma-color-blue);
+      border: 1px solid var(--figma-color-blue);
+    }
+
+    .button.secondary:hover {
+      background-color: rgba(24, 160, 251, 0.1);
+    }
+
+    input {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+      border: 1px solid var(--figma-color-border);
+      border-radius: var(--figma-radius);
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--figma-color-blue);
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 200px;
+      text-align: center;
+    }
+
+    .empty-state-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+      color: #888;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 500;
+    }
+
+    .status-badge.local {
+      background-color: #e0f0ff;
+      color: #0366d6;
+    }
+
+    .status-badge.remote {
+      background-color: #f0f0f0;
+      color: #24292e;
+    }
+
+    .no-results {
+      padding: 40px 0;
+      text-align: center;
+      color: #888;
+    }
+
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 200px;
+    }
+
+    .loading-spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid var(--figma-color-blue);
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="component-library">
+      <div class="component-library-header">
+        <h1>Component Library</h1>
+        <div class="component-library-search">
+          <input type="text" id="search-input" placeholder="Search components...">
+        </div>
+        <div class="component-library-filters">
+          <div class="component-filter-pill active" data-filter="all">All</div>
+          <div class="component-filter-pill" data-filter="local">Local</div>
+          <div class="component-filter-pill" data-filter="remote">Team Library</div>
+          <!-- Category filters will be added dynamically -->
+        </div>
+      </div>
+
+      <div class="component-library-content">
+        <div id="loading" class="loading">
+          <div class="loading-spinner"></div>
+        </div>
+
+        <div id="no-results" class="no-results" style="display: none;">
+          No components found matching your criteria
+        </div>
+
+        <div id="components-container" style="display: none;">
+          <!-- Category sections will be added here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Component Detail Modal -->
+    <div id="component-detail-modal" class="component-detail-modal">
+      <div class="component-detail-content">
+        <div class="component-detail-header">
+          <h2 id="modal-component-name">Component Name</h2>
+          <button class="button secondary" id="modal-close-button">Close</button>
+        </div>
+
+        <div id="modal-component-preview" style="text-align: center; margin-bottom: 16px;"></div>
+
+        <div class="tab-group">
+          <div class="tab active" data-tab="details">Details</div>
+          <div class="tab" data-tab="variants">Variants</div>
+          <div class="tab" data-tab="properties">Properties</div>
+        </div>
+
+        <div id="tab-details" class="tab-content">
+          <div class="property-row">
+            <div class="property-label">Description</div>
+            <div class="property-value" id="modal-description">-</div>
+          </div>
+          <div class="property-row">
+            <div class="property-label">Location</div>
+            <div class="property-value" id="modal-location">-</div>
+          </div>
+          <div class="property-row">
+            <div class="property-label">Dimensions</div>
+            <div class="property-value" id="modal-dimensions">-</div>
+          </div>
+          <div class="property-row">
+            <div class="property-label">Type</div>
+            <div class="property-value" id="modal-type">-</div>
+          </div>
+        </div>
+
+        <div id="tab-variants" class="tab-content" style="display: none;">
+          <div id="variants-container">
+            <div class="empty-state">
+              <div class="empty-state-icon">⚠️</div>
+              <div>No variants available</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="tab-properties" class="tab-content" style="display: none;">
+          <div id="properties-container">
+            <div class="empty-state">
+              <div class="empty-state-icon">⚠️</div>
+              <div>No properties defined</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="component-detail-actions">
+          <button class="button" id="insert-button">Insert Component</button>
+          <button class="button secondary" id="view-in-figma-button">View in Figma</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Plugin communication
+    const parent = window.parent;
+    let componentLibrary = [];
+    let selectedFilter = 'all';
+    let searchQuery = '';
+    let selectedComponent = null;
+    
+    // DOM elements
+    const searchInput = document.getElementById('search-input');
+    const filterPills = document.querySelectorAll('.component-filter-pill');
+    const componentsContainer = document.getElementById('components-container');
+    const loadingElement = document.getElementById('loading');
+    const noResultsElement = document.getElementById('no-results');
+    
+    // Modal elements
+    const componentDetailModal = document.getElementById('component-detail-modal');
+    const modalComponentName = document.getElementById('modal-component-name');
+    const modalDescription = document.getElementById('modal-description');
+    const modalLocation = document.getElementById('modal-location');
+    const modalDimensions = document.getElementById('modal-dimensions');
+    const modalType = document.getElementById('modal-type');
+    const modalComponentPreview = document.getElementById('modal-component-preview');
+    const modalCloseButton = document.getElementById('modal-close-button');
+    const insertButton = document.getElementById('insert-button');
+    const viewInFigmaButton = document.getElementById('view-in-figma-button');
+    const variantsContainer = document.getElementById('variants-container');
+    const propertiesContainer = document.getElementById('properties-container');
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    // Function to load component library
+    async function loadComponentLibrary() {
+      showLoading();
+      
+      // Request component library data from the plugin
+      parent.postMessage({
+        pluginMessage: {
+          type: 'get_enhanced_component_library',
+          includeRemote: true,
+          includeLocal: true,
+          includeThumbnails: true,
+          searchQuery: searchQuery
+        }
+      }, '*');
+    }
+    
+    // Function to display components
+    function displayComponents(components) {
+      hideLoading();
+      
+      if (!components || components.length === 0) {
+        showNoResults();
+        return;
+      }
+      
+      hideNoResults();
+      componentsContainer.style.display = 'block';
+      componentsContainer.innerHTML = '';
+      
+      // Group components by category
+      const categorizedComponents = {};
+      
+      components.forEach(component => {
+        const category = component.category || 'Uncategorized';
+        
+        if (!categorizedComponents[category]) {
+          categorizedComponents[category] = [];
+        }
+        
+        categorizedComponents[category].push(component);
+      });
+      
+      // Create category sections
+      Object.keys(categorizedComponents).sort().forEach(category => {
+        const categoryComponents = categorizedComponents[category];
+        
+        // Create category section
+        const categorySection = document.createElement('div');
+        categorySection.className = 'category-section';
+        
+        // Create category title
+        const categoryTitle = document.createElement('div');
+        categoryTitle.className = 'category-title';
+        categoryTitle.textContent = category;
+        categorySection.appendChild(categoryTitle);
+        
+        // Create component grid
+        const componentGrid = document.createElement('div');
+        componentGrid.className = 'component-grid';
+        categorySection.appendChild(componentGrid);
+        
+        // Add components to grid
+        categoryComponents.forEach(component => {
+          const componentCard = createComponentCard(component);
+          componentGrid.appendChild(componentCard);
+        });
+        
+        componentsContainer.appendChild(categorySection);
+      });
+    }
+    
+    // Function to create a component card
+    function createComponentCard(component) {
+      const card = document.createElement('div');
+      card.className = 'component-card';
+      card.dataset.id = component.id;
+      card.dataset.type = component.type;
+      
+      // Create thumbnail
+      const thumbnail = document.createElement('div');
+      thumbnail.className = 'component-thumbnail';
+      
+      if (component.thumbnail) {
+        const img = document.createElement('img');
+        img.src = `data:image/png;base64,${component.thumbnail}`;
+        thumbnail.appendChild(img);
+      } else {
+        // Placeholder
+        thumbnail.innerHTML = '<div style="color: #aaa; font-size: 24px;">⬚</div>';
+      }
+      
+      // Create info section
+      const info = document.createElement('div');
+      info.className = 'component-info';
+      
+      const name = document.createElement('div');
+      name.className = 'component-name';
+      name.textContent = component.name.split('/').pop(); // Get last part of the name
+      
+      const meta = document.createElement('div');
+      meta.className = 'component-meta';
+      
+      const type = document.createElement('div');
+      type.textContent = component.type === 'COMPONENT_SET' ? 'Set' : 'Component';
+      
+      const status = document.createElement('div');
+      status.className = `status-badge ${component.remote ? 'remote' : 'local'}`;
+      status.textContent = component.remote ? 'Library' : 'Local';
+      
+      meta.appendChild(type);
+      meta.appendChild(status);
+      
+      info.appendChild(name);
+      info.appendChild(meta);
+      
+      card.appendChild(thumbnail);
+      card.appendChild(info);
+      
+      // Add click event listener
+      card.addEventListener('click', () => {
+        showComponentDetail(component);
+      });
+      
+      return card;
+    }
+    
+    // Function to show component detail modal
+    function showComponentDetail(component) {
+      selectedComponent = component;
+      
+      // Set modal content
+      modalComponentName.textContent = component.name;
+      modalDescription.textContent = component.description || '-';
+      modalLocation.textContent = component.pageName || (component.remote ? 'Team Library' : '-');
+      modalDimensions.textContent = component.width && component.height ? `${component.width} × ${component.height}` : '-';
+      modalType.textContent = component.type === 'COMPONENT_SET' ? 'Component Set' : 'Component';
+      
+      // Set preview
+      modalComponentPreview.innerHTML = '';
+      if (component.thumbnail) {
+        const img = document.createElement('img');
+        img.src = `data:image/png;base64,${component.thumbnail}`;
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = '200px';
+        modalComponentPreview.appendChild(img);
+      }
+      
+      // If this is a component with a key but not a full detail yet, load the details
+      if (component.id && !component.componentProperties && !component.variants) {
+        // Request component data from the plugin
+        parent.postMessage({
+          pluginMessage: {
+            type: 'get_component_data',
+            componentId: component.id,
+            includeStyles: true,
+            includeVariants: true,
+            includeThumbnail: true
+          }
+        }, '*');
+      } else {
+        // Update variants tab
+        updateVariantsTab(component);
+        
+        // Update properties tab
+        updatePropertiesTab(component);
+      }
+      
+      // Reset to details tab
+      tabs.forEach(tab => tab.classList.remove('active'));
+      tabContents.forEach(content => content.style.display = 'none');
+      document.querySelector('.tab[data-tab="details"]').classList.add('active');
+      document.getElementById('tab-details').style.display = 'block';
+      
+      // Show modal
+      componentDetailModal.classList.add('active');
+    }
+    
+    // Function to update variants tab
+    function updateVariantsTab(component) {
+      variantsContainer.innerHTML = '';
+      
+      if (component.variants && component.variants.length > 0) {
+        const variantsList = document.createElement('div');
+        variantsList.className = 'variants-list';
+        
+        component.variants.forEach(variant => {
+          const variantItem = document.createElement('div');
+          variantItem.className = 'property-row';
+          
+          const variantName = document.createElement('div');
+          variantName.className = 'property-label';
+          variantName.textContent = variant.name.split('/').pop();
+          
+          const variantProps = document.createElement('div');
+          variantProps.className = 'property-value';
+          
+          // Display variant properties
+          if (variant.variantProperties && Object.keys(variant.variantProperties).length > 0) {
+            const propsList = document.createElement('div');
+            
+            Object.entries(variant.variantProperties).forEach(([key, value]) => {
+              const propItem = document.createElement('div');
+              propItem.textContent = `${key}: ${value}`;
+              propsList.appendChild(propItem);
+            });
+            
+            variantProps.appendChild(propsList);
+          } else {
+            variantProps.textContent = 'No variant properties';
+          }
+          
+          variantItem.appendChild(variantName);
+          variantItem.appendChild(variantProps);
+          variantsList.appendChild(variantItem);
+        });
+        
+        variantsContainer.appendChild(variantsList);
+      } else {
+        variantsContainer.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">⚠️</div>
+            <div>No variants available</div>
+          </div>
+        `;
+      }
+    }
+    
+    // Function to update properties tab
+    function updatePropertiesTab(component) {
+      propertiesContainer.innerHTML = '';
+      
+      if (component.componentProperties && Object.keys(component.componentProperties).length > 0) {
+        const propertiesList = document.createElement('div');
+        
+        Object.entries(component.componentProperties).forEach(([key, prop]) => {
+          const propItem = document.createElement('div');
+          propItem.className = 'property-row';
+          
+          const propLabel = document.createElement('div');
+          propLabel.className = 'property-label';
+          propLabel.textContent = key;
+          
+          const propValue = document.createElement('div');
+          propValue.className = 'property-value';
+          propValue.textContent = `${prop.type}${prop.defaultValue ? `: ${prop.defaultValue}` : ''}`;
+          
+          propItem.appendChild(propLabel);
+          propItem.appendChild(propValue);
+          propertiesList.appendChild(propItem);
+        });
+        
+        propertiesContainer.appendChild(propertiesList);
+      } else {
+        propertiesContainer.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">⚠️</div>
+            <div>No properties defined</div>
+          </div>
+        `;
+      }
+    }
+    
+    // Function to filter components
+    function filterComponents() {
+      const filtered = componentLibrary.filter(component => {
+        // Filter by type (local/remote)
+        if (selectedFilter === 'local' && component.remote) {
+          return false;
+        }
+        
+        if (selectedFilter === 'remote' && !component.remote) {
+          return false;
+        }
+        
+        // Filter by search query
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase();
+          const name = component.name.toLowerCase();
+          const description = (component.description || '').toLowerCase();
+          
+          return name.includes(query) || description.includes(query);
+        }
+        
+        return true;
+      });
+      
+      displayComponents(filtered);
+    }
+    
+    // Function to show loading state
+    function showLoading() {
+      loadingElement.style.display = 'flex';
+      componentsContainer.style.display = 'none';
+      noResultsElement.style.display = 'none';
+    }
+    
+    // Function to hide loading state
+    function hideLoading() {
+      loadingElement.style.display = 'none';
+    }
+    
+    // Function to show no results message
+    function showNoResults() {
+      noResultsElement.style.display = 'block';
+      componentsContainer.style.display = 'none';
+    }
+    
+    // Function to hide no results message
+    function hideNoResults() {
+      noResultsElement.style.display = 'none';
+    }
+    
+    // Function to insert component
+    function insertComponent() {
+      if (!selectedComponent) return;
+      
+      // Send insert command to plugin
+      parent.postMessage({
+        pluginMessage: {
+          type: 'create_component_instance',
+          componentId: selectedComponent.id,
+          x: 0,
+          y: 0,
+          name: selectedComponent.name
+        }
+      }, '*');
+      
+      // Close modal
+      closeModal();
+    }
+    
+    // Function to close modal
+    function closeModal() {
+      componentDetailModal.classList.remove('active');
+      selectedComponent = null;
+    }
+    
+    // Initialize event listeners
+    function initEventListeners() {
+      // Search input
+      searchInput.addEventListener('input', (e) => {
+        searchQuery = e.target.value.trim();
+        filterComponents();
+      });
+      
+      // Filter pills
+      filterPills.forEach(pill => {
+        pill.addEventListener('click', () => {
+          filterPills.forEach(p => p.classList.remove('active'));
+          pill.classList.add('active');
+          selectedFilter = pill.dataset.filter;
+          filterComponents();
+        });
+      });
+      
+      // Modal close button
+      modalCloseButton.addEventListener('click', closeModal);
+      
+      // Modal background click
+      componentDetailModal.addEventListener('click', (e) => {
+        if (e.target === componentDetailModal) {
+          closeModal();
+        }
+      });
+      
+      // Insert button
+      insertButton.addEventListener('click', insertComponent);
+      
+      // View in Figma button
+      viewInFigmaButton.addEventListener('click', () => {
+        if (!selectedComponent) return;
+        
+        // Send command to focus on component
+        parent.postMessage({
+          pluginMessage: {
+            type: 'focus_on_node',
+            nodeId: selectedComponent.id
+          }
+        }, '*');
+        
+        closeModal();
+      });
+      
+      // Tab switching
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          const tabName = tab.dataset.tab;
+          
+          // Update active tab
+          tabs.forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          
+          // Show corresponding content
+          tabContents.forEach(content => {
+            content.style.display = content.id === `tab-${tabName}` ? 'block' : 'none';
+          });
+        });
+      });
+    }
+    
+    // Handle messages from the plugin
+    window.onmessage = function(event) {
+      const message = event.data.pluginMessage;
+      
+      if (!message) return;
+      
+      if (message.type === 'component_library_data') {
+        componentLibrary = message.components;
+        filterComponents();
+      }
+      else if (message.type === 'component_data') {
+        // Update the selected component with detailed data
+        if (selectedComponent && selectedComponent.id === message.component.id) {
+          selectedComponent = { ...selectedComponent, ...message.component };
+          
+          // Update the modal
+          updateVariantsTab(selectedComponent);
+          updatePropertiesTab(selectedComponent);
+        }
+      }
+      else if (message.type === 'component_inserted') {
+        closeModal();
+        parent.postMessage({
+          pluginMessage: {
+            type: 'notify',
+            message: 'Component inserted successfully'
+          }
+        }, '*');
+      }
+      else if (message.type === 'error') {
+        parent.postMessage({
+          pluginMessage: {
+            type: 'notify',
+            message: `Error: ${message.message}`
+          }
+        }, '*');
+      }
+    };
+    
+    // Initialize
+    initEventListeners();
+    loadComponentLibrary();
+  </script>
+</body>
+</html>

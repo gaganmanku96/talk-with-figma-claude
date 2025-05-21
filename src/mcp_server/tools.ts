@@ -1007,5 +1007,257 @@ export const tools = {
     handler: async ({ componentId, propertyName, defaultComponentKey }: { componentId: string, propertyName: string, defaultComponentKey?: string }) => {
       return await sendFigmaCommand('create_instance_swap_property', { componentId, propertyName, defaultComponentKey });
     }
+  },
+  
+  // Alignment & Distribution tools
+  align_elements: {
+    description: 'Align selected elements with specified alignment option',
+    parameters: {
+      type: 'object',
+      properties: {
+        alignmentType: {
+          type: 'string',
+          enum: ['LEFT', 'RIGHT', 'CENTER', 'TOP', 'MIDDLE', 'BOTTOM'],
+          description: 'The type of alignment to apply'
+        },
+        nodeIds: {
+          type: 'array',
+          items: {
+            type: 'string'
+          },
+          description: 'Optional array of node IDs to align. If not provided, uses current selection.'
+        },
+        boundingBox: {
+          type: 'object',
+          properties: {
+            x: { type: 'number' },
+            y: { type: 'number' },
+            width: { type: 'number' },
+            height: { type: 'number' }
+          },
+          description: 'Optional bounding box to align to instead of selection bounds.'
+        }
+      },
+      required: ['alignmentType']
+    },
+    handler: async (params: any) => {
+      return await sendFigmaCommand('align_elements', params);
+    }
+  },
+  
+  distribute_elements: {
+    description: 'Distribute selected elements evenly',
+    parameters: {
+      type: 'object',
+      properties: {
+        direction: {
+          type: 'string',
+          enum: ['HORIZONTAL', 'VERTICAL'],
+          description: 'The direction to distribute elements'
+        },
+        nodeIds: {
+          type: 'array',
+          items: {
+            type: 'string'
+          },
+          description: 'Optional array of node IDs to distribute. If not provided, uses current selection.'
+        },
+        spacing: {
+          type: 'number',
+          description: 'Optional fixed spacing between elements. If provided, elements will be distributed with this exact spacing rather than evenly across the available space.'
+        }
+      },
+      required: ['direction']
+    },
+    handler: async (params: any) => {
+      return await sendFigmaCommand('distribute_elements', params);
+    }
+  },
+  
+  // Grid Layout Generator
+  create_grid_layout: {
+    description: 'Create an advanced grid layout with multiple configuration options',
+    parameters: {
+      type: 'object',
+      properties: {
+        columns: {
+          type: 'number',
+          description: 'Number of columns in the grid'
+        },
+        rows: {
+          type: 'number',
+          description: 'Number of rows in the grid (optional, will be calculated from itemCount if not provided)'
+        },
+        itemCount: {
+          type: 'number',
+          description: 'Total number of items to generate'
+        },
+        columnGap: {
+          type: 'number',
+          description: 'Gap between columns'
+        },
+        rowGap: {
+          type: 'number',
+          description: 'Gap between rows'
+        },
+        cellWidth: {
+          type: 'number',
+          description: 'Width of each cell in the grid'
+        },
+        cellHeight: {
+          type: 'number',
+          description: 'Height of each cell in the grid'
+        },
+        parentId: {
+          type: 'string',
+          description: 'Optional parent node ID'
+        },
+        x: {
+          type: 'number',
+          description: 'X position of the grid frame'
+        },
+        y: {
+          type: 'number',
+          description: 'Y position of the grid frame'
+        },
+        name: {
+          type: 'string',
+          description: 'Name for the grid frame'
+        },
+        fillItems: {
+          type: 'boolean',
+          description: 'Whether to fill grid cells with placeholder rectangles'
+        },
+        useAutoLayout: {
+          type: 'boolean',
+          description: 'Whether to use auto layout for the grid (default: true)'
+        },
+        responsive: {
+          type: 'boolean',
+          description: 'Whether to make the grid responsive with auto layout (only applies if useAutoLayout is true)'
+        },
+        templateAreas: {
+          type: 'array',
+          items: {
+            type: 'string'
+          },
+          description: 'CSS-like grid template areas for named grid areas'
+        }
+      },
+      required: ['columns', 'cellWidth', 'cellHeight']
+    },
+    handler: async (params: any) => {
+      return await sendFigmaCommand('create_grid_layout', params);
+    }
+  },
+  
+  // Component Property Batch Editor
+  batch_edit_component_properties: {
+    description: 'Batch edit properties of multiple component instances',
+    parameters: {
+      type: 'object',
+      properties: {
+        updates: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              instanceId: {
+                type: 'string',
+                description: 'ID of the component instance'
+              },
+              properties: {
+                type: 'object',
+                description: 'Properties to update with their new values'
+              }
+            },
+            required: ['instanceId', 'properties']
+          },
+          description: 'Array of updates for component instances'
+        },
+        propertyPresets: {
+          type: 'object',
+          description: 'Predefined property values to apply across multiple instances'
+        },
+        propertyFilter: {
+          type: 'object',
+          properties: {
+            names: {
+              type: 'array',
+              items: {
+                type: 'string'
+              },
+              description: 'Filter to only update properties with these names'
+            },
+            types: {
+              type: 'array',
+              items: {
+                type: 'string',
+                enum: ['TEXT', 'BOOLEAN', 'INSTANCE_SWAP', 'VARIANT']
+              },
+              description: 'Filter to only update properties of these types'
+            }
+          },
+          description: 'Filter which properties to update'
+        },
+        applyToSelection: {
+          type: 'boolean',
+          description: 'Whether to apply updates to all selected component instances'
+        }
+      },
+      required: ['updates']
+    },
+    handler: async (params: any) => {
+      return await sendFigmaCommand('batch_edit_component_properties', params);
+    }
+  },
+  
+  // Design Token Converter
+  convert_design_tokens: {
+    description: 'Convert design tokens (variables) between different formats',
+    parameters: {
+      type: 'object',
+      properties: {
+        source: {
+          type: 'string',
+          enum: ['figma', 'css', 'scss', 'js', 'tailwind', 'json', 'android', 'ios'],
+          description: 'Source format of design tokens'
+        },
+        target: {
+          type: 'string',
+          enum: ['figma', 'css', 'scss', 'js', 'tailwind', 'json', 'android', 'ios'],
+          description: 'Target format to convert design tokens to'
+        },
+        collectionId: {
+          type: 'string',
+          description: 'ID of variable collection (if source is "figma")'
+        },
+        tokens: {
+          type: 'string', 
+          description: 'JSON string of design tokens (if source is not "figma")'
+        },
+        prefix: {
+          type: 'string',
+          description: 'Optional prefix for generated variable names'
+        },
+        nameFormat: {
+          type: 'string',
+          enum: ['kebab-case', 'camelCase', 'PascalCase', 'snake_case'],
+          description: 'Naming convention for generated variables'
+        },
+        includeComments: {
+          type: 'boolean',
+          description: 'Whether to include descriptive comments in the output'
+        },
+        groupByCategory: {
+          type: 'boolean',
+          description: 'Whether to group variables by category in the output'
+        }
+      },
+      required: ['source', 'target']
+    },
+    handler: async (params: any) => {
+      return await sendFigmaCommand('convert_design_tokens', params);
+    }
   }
 };

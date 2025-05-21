@@ -98,6 +98,21 @@ async function executeCommand(command, params) {
     case 'create_frame':
       return createFrame(params);
 
+    case 'create_frame_with_auto_layout':
+      return createFrameWithAutoLayout(params);
+
+    case 'modify_auto_layout':
+      return modifyAutoLayout(params);
+      
+    case 'toggle_auto_layout_direction':
+      return toggleAutoLayoutDirection(params);
+      
+    case 'apply_auto_layout_to_selection':
+      return applyAutoLayoutToSelection(params);
+      
+    case 'set_auto_layout_sizing':
+      return setAutoLayoutSizing(params);
+
     case 'create_text':
       return createText(params);
 
@@ -124,6 +139,12 @@ async function executeCommand(command, params) {
 
     case 'get_local_components':
       return getLocalComponents();
+      
+    case 'get_component_data':
+      return getComponentData(params);
+      
+    case 'get_enhanced_component_library':
+      return getEnhancedComponentLibrary(params);
 
     case 'create_component_instance':
       return createComponentInstance(params);
@@ -196,6 +217,21 @@ async function executeCommand(command, params) {
     case 'create_instance_swap_property':
       return createInstanceSwapProperty(params);
 
+    case 'align_elements':
+      return alignElements(params);
+
+    case 'distribute_elements':
+      return distributeElements(params);
+      
+    case 'create_grid_layout':
+      return createGridLayout(params);
+      
+    case 'batch_edit_component_properties':
+      return batchEditComponentProperties(params);
+      
+    case 'convert_design_tokens':
+      return convertDesignTokens(params);
+
     default:
       throw new Error(`Unknown command: ${command}`);
   }
@@ -215,6 +251,421 @@ function getDocumentInfo() {
       type: page.type,
       childCount: (page.children && page.children.length) || 0
     }))
+  };
+}
+
+// Apply auto layout to the current selection
+async function applyAutoLayoutToSelection(params) {
+  const { 
+    layoutMode = 'VERTICAL',          // Default to vertical layout
+    itemSpacing = 10,                // Default spacing
+    padding = 0,                     // Default padding
+    primaryAxisAlignItems = 'MIN',   // Default alignment
+    counterAxisAlignItems = 'MIN',   // Default alignment
+    wrapInNewFrame = false,          // Whether to create a new frame
+    frameName = 'Auto Layout Frame'  // Name for the new frame
+  } = params;
+  
+  const selection = figma.currentPage.selection;
+  
+  if (selection.length === 0) {
+    throw new Error('No elements selected. Please select at least one element.');
+  }
+  
+  // If wrapInNewFrame is true, we create a new frame and add selected elements to it
+  if (wrapInNewFrame) {
+    // Find the bounds of the selection
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    
+    selection.forEach(node => {
+      if ('x' in node && 'y' in node && 'width' in node && 'height' in node) {
+        minX = Math.min(minX, node.x);
+        minY = Math.min(minY, node.y);
+        maxX = Math.max(maxX, node.x + node.width);
+        maxY = Math.max(maxY, node.y + node.height);
+      }
+    });
+    
+    // Add some margin
+    const margin = 20;
+    minX -= margin;
+    minY -= margin;
+    maxX += margin;
+    maxY += margin;
+    
+    // Create a new frame
+    const frame = figma.createFrame();
+    frame.name = frameName;
+    frame.x = minX;
+    frame.y = minY;
+    frame.resize(maxX - minX, maxY - minY);
+    
+    // Apply auto layout
+    frame.layoutMode = layoutMode;
+    frame.itemSpacing = itemSpacing;
+    
+    // Apply padding
+    if (typeof padding === 'number') {
+      frame.paddingTop = padding;
+      frame.paddingRight = padding;
+      frame.paddingBottom = padding;
+      frame.paddingLeft = padding;
+    } else if (typeof padding === 'object') {
+      if (padding.top !== undefined) frame.paddingTop = padding.top;
+      if (padding.right !== undefined) frame.paddingRight = padding.right;
+      if (padding.bottom !== undefined) frame.paddingBottom = padding.bottom;
+      if (padding.left !== undefined) frame.paddingLeft = padding.left;
+    }
+    
+    frame.primaryAxisAlignItems = primaryAxisAlignItems;
+    frame.counterAxisAlignItems = counterAxisAlignItems;
+    
+    // Add the selected elements to the frame
+    const nodesToMove = [...selection];
+    nodesToMove.forEach(node => {
+      // Adjust the position within the frame
+      if ('x' in node && 'y' in node) {
+        node.x = node.x - minX;
+        node.y = node.y - minY;
+      }
+      
+      // Add to the frame
+      frame.appendChild(node);
+    });
+    
+    // Select the new frame
+    figma.currentPage.selection = [frame];
+    
+    return {
+      id: frame.id,
+      name: frame.name,
+      type: frame.type,
+      layoutMode: frame.layoutMode,
+      itemSpacing: frame.itemSpacing,
+      padding: {
+        top: frame.paddingTop,
+        right: frame.paddingRight,
+        bottom: frame.paddingBottom,
+        left: frame.paddingLeft
+      },
+      childCount: frame.children.length,
+      children: frame.children.map(child => ({ id: child.id, name: child.name }))
+    };
+  } else {
+    // Apply auto layout to each selected frame or group
+    const results = [];
+    
+    for (const node of selection) {
+      // Check if the node can have auto layout
+      const validTypes = ['FRAME', 'COMPONENT', 'COMPONENT_SET', 'INSTANCE', 'SECTION'];
+      
+      if (validTypes.includes(node.type)) {
+        // Apply auto layout
+        node.layoutMode = layoutMode;
+        node.itemSpacing = itemSpacing;
+        
+        // Apply padding
+        if (typeof padding === 'number') {
+          node.paddingTop = padding;
+          node.paddingRight = padding;
+          node.paddingBottom = padding;
+          node.paddingLeft = padding;
+        } else if (typeof padding === 'object') {
+          if (padding.top !== undefined) node.paddingTop = padding.top;
+          if (padding.right !== undefined) node.paddingRight = padding.right;
+          if (padding.bottom !== undefined) node.paddingBottom = padding.bottom;
+          if (padding.left !== undefined) node.paddingLeft = padding.left;
+        }
+        
+        node.primaryAxisAlignItems = primaryAxisAlignItems;
+        node.counterAxisAlignItems = counterAxisAlignItems;
+        
+        results.push({
+          id: node.id,
+          name: node.name,
+          type: node.type,
+          layoutMode: node.layoutMode,
+          itemSpacing: node.itemSpacing,
+          padding: {
+            top: node.paddingTop,
+            right: node.paddingRight,
+            bottom: node.paddingBottom,
+            left: node.paddingLeft
+          },
+          childCount: 'children' in node ? node.children.length : 0
+        });
+      } else if (node.type === 'GROUP') {
+        // For groups, convert to frame first
+        const frameNode = figma.createFrame();
+        frameNode.name = node.name;
+        frameNode.x = node.x;
+        frameNode.y = node.y;
+        frameNode.resize(node.width, node.height);
+        
+        // Apply auto layout
+        frameNode.layoutMode = layoutMode;
+        frameNode.itemSpacing = itemSpacing;
+        
+        // Apply padding
+        if (typeof padding === 'number') {
+          frameNode.paddingTop = padding;
+          frameNode.paddingRight = padding;
+          frameNode.paddingBottom = padding;
+          frameNode.paddingLeft = padding;
+        } else if (typeof padding === 'object') {
+          if (padding.top !== undefined) frameNode.paddingTop = padding.top;
+          if (padding.right !== undefined) frameNode.paddingRight = padding.right;
+          if (padding.bottom !== undefined) frameNode.paddingBottom = padding.bottom;
+          if (padding.left !== undefined) frameNode.paddingLeft = padding.left;
+        }
+        
+        frameNode.primaryAxisAlignItems = primaryAxisAlignItems;
+        frameNode.counterAxisAlignItems = counterAxisAlignItems;
+        
+        // Move group's children to the new frame
+        if ('children' in node) {
+          const groupChildren = [...node.children];
+          groupChildren.forEach(child => {
+            if ('x' in child && 'y' in child) {
+              // Adjust position to be relative to the group
+              child.x = child.x - node.x;
+              child.y = child.y - node.y;
+            }
+            frameNode.appendChild(child);
+          });
+        }
+        
+        // Replace the group with the frame
+        if (node.parent) {
+          node.parent.insertChild(node.parent.children.indexOf(node), frameNode);
+          node.remove();
+        }
+        
+        results.push({
+          id: frameNode.id,
+          name: frameNode.name,
+          type: frameNode.type,
+          layoutMode: frameNode.layoutMode,
+          itemSpacing: frameNode.itemSpacing,
+          padding: {
+            top: frameNode.paddingTop,
+            right: frameNode.paddingRight,
+            bottom: frameNode.paddingBottom,
+            left: frameNode.paddingLeft
+          },
+          childCount: frameNode.children.length,
+          convertedFromGroup: true
+        });
+      } else {
+        // Skip nodes that can't have auto layout
+        results.push({
+          id: node.id,
+          name: node.name,
+          type: node.type,
+          skipped: true,
+          reason: `Node type '${node.type}' does not support auto layout`
+        });
+      }
+    }
+    
+    return {
+      count: results.length,
+      modified: results.filter(r => !r.skipped).length,
+      skipped: results.filter(r => r.skipped).length,
+      results
+    };
+  }
+}
+
+// Set auto layout sizing modes
+function setAutoLayoutSizing(params) {
+  const { 
+    nodeId, 
+    primaryAxisSizingMode, 
+    counterAxisSizingMode,
+    resizeChildren = false
+  } = params;
+
+  // Get the node
+  const node = figma.getNodeById(nodeId);
+
+  if (!node) {
+    throw new Error(`Node not found: ${nodeId}`);
+  }
+
+  // Check if the node has auto layout
+  if (node.layoutMode === 'NONE') {
+    throw new Error(`Node does not have auto layout enabled`);
+  }
+
+  // Store original values
+  const originalPrimary = node.primaryAxisSizingMode;
+  const originalCounter = node.counterAxisSizingMode;
+
+  // Update the sizing modes
+  if (primaryAxisSizingMode) {
+    node.primaryAxisSizingMode = primaryAxisSizingMode;
+  }
+
+  if (counterAxisSizingMode) {
+    node.counterAxisSizingMode = counterAxisSizingMode;
+  }
+
+  // If resizeChildren is true, adjust constraints and sizes of children based on the new sizing modes
+  if (resizeChildren && 'children' in node && node.children.length > 0) {
+    // Apply sizing constraints to children based on the layout direction and sizing modes
+    const isHorizontal = node.layoutMode === 'HORIZONTAL';
+    
+    // Determine which axis is affected by which sizing mode
+    const xAxisSizingMode = isHorizontal ? primaryAxisSizingMode : counterAxisSizingMode;
+    const yAxisSizingMode = isHorizontal ? counterAxisSizingMode : primaryAxisSizingMode;
+    
+    // Apply constraints to children
+    node.children.forEach(child => {
+      if ('constraints' in child) {
+        // X-axis constraints
+        if (xAxisSizingMode === 'HUG') {
+          // When parent hugs content, children should not stretch
+          child.constraints = {
+            ...child.constraints,
+            horizontal: 'MIN'
+          };
+        } else if (xAxisSizingMode === 'FIXED') {
+          // For fixed width, depends on the layout
+          if (isHorizontal) {
+            // In horizontal layout, children should remain fixed width
+            child.constraints = {
+              ...child.constraints,
+              horizontal: 'MIN'
+            };
+          } else {
+            // In vertical layout, children can stretch to fill width
+            child.constraints = {
+              ...child.constraints,
+              horizontal: 'STRETCH'
+            };
+          }
+        }
+        
+        // Y-axis constraints
+        if (yAxisSizingMode === 'HUG') {
+          // When parent hugs content, children should not stretch
+          child.constraints = {
+            ...child.constraints,
+            vertical: 'MIN'
+          };
+        } else if (yAxisSizingMode === 'FIXED') {
+          // For fixed height, depends on the layout
+          if (!isHorizontal) {
+            // In vertical layout, children should remain fixed height
+            child.constraints = {
+              ...child.constraints,
+              vertical: 'MIN'
+            };
+          } else {
+            // In horizontal layout, children can stretch to fill height
+            child.constraints = {
+              ...child.constraints,
+              vertical: 'STRETCH'
+            };
+          }
+        }
+      }
+    });
+  }
+
+  // Return the updated settings
+  return {
+    id: node.id,
+    name: node.name,
+    type: node.type,
+    layoutMode: node.layoutMode,
+    previousSettings: {
+      primaryAxisSizingMode: originalPrimary,
+      counterAxisSizingMode: originalCounter
+    },
+    currentSettings: {
+      primaryAxisSizingMode: node.primaryAxisSizingMode,
+      counterAxisSizingMode: node.counterAxisSizingMode
+    },
+    childrenAdjusted: resizeChildren && 'children' in node ? node.children.length : 0
+  };
+}
+
+// Toggle auto layout direction between horizontal and vertical
+function toggleAutoLayoutDirection(params) {
+  const { nodeId } = params;
+
+  // Get the node
+  const node = figma.getNodeById(nodeId);
+
+  if (!node) {
+    throw new Error(`Node not found: ${nodeId}`);
+  }
+
+  // Check if the node has auto layout
+  if (node.layoutMode === 'NONE') {
+    throw new Error(`Node does not have auto layout enabled`);
+  }
+
+  // Store the current properties before toggling
+  const currentDirection = node.layoutMode;
+  const currentSpacing = node.itemSpacing;
+  const currentPaddingTop = node.paddingTop;
+  const currentPaddingRight = node.paddingRight;
+  const currentPaddingBottom = node.paddingBottom;
+  const currentPaddingLeft = node.paddingLeft;
+  const currentPrimaryAxisAlign = node.primaryAxisAlignItems;
+  const currentCounterAxisAlign = node.counterAxisAlignItems;
+  const currentPrimaryAxisSizingMode = node.primaryAxisSizingMode;
+  const currentCounterAxisSizingMode = node.counterAxisSizingMode;
+
+  // Toggle the layout direction
+  const newDirection = currentDirection === 'HORIZONTAL' ? 'VERTICAL' : 'HORIZONTAL';
+  node.layoutMode = newDirection;
+
+  // Maintain the same properties after toggling
+  node.itemSpacing = currentSpacing;
+  node.paddingTop = currentPaddingTop;
+  node.paddingRight = currentPaddingRight;
+  node.paddingBottom = currentPaddingBottom;
+  node.paddingLeft = currentPaddingLeft;
+  
+  // Intelligently swap primary and counter axis properties
+  node.primaryAxisAlignItems = currentCounterAxisAlign !== 'BASELINE' ? 
+                               currentCounterAxisAlign : 
+                               currentPrimaryAxisAlign;
+                               
+  node.counterAxisAlignItems = currentPrimaryAxisAlign !== 'SPACE_BETWEEN' ? 
+                               currentPrimaryAxisAlign : 
+                               currentCounterAxisAlign;
+  
+  // Swap sizing modes as well if needed
+  node.primaryAxisSizingMode = currentCounterAxisSizingMode;
+  node.counterAxisSizingMode = currentPrimaryAxisSizingMode;
+
+  // Return the updated properties
+  return {
+    id: node.id,
+    name: node.name,
+    type: node.type,
+    previousDirection: currentDirection,
+    newDirection: newDirection,
+    layoutMode: node.layoutMode,
+    itemSpacing: node.itemSpacing,
+    padding: {
+      top: node.paddingTop,
+      right: node.paddingRight,
+      bottom: node.paddingBottom,
+      left: node.paddingLeft
+    },
+    primaryAxisAlignItems: node.primaryAxisAlignItems,
+    counterAxisAlignItems: node.counterAxisAlignItems,
+    primaryAxisSizingMode: node.primaryAxisSizingMode,
+    counterAxisSizingMode: node.counterAxisSizingMode
   };
 }
 
@@ -400,6 +851,181 @@ function createFrame(params) {
     y: frame.y,
     width: frame.width,
     height: frame.height
+  };
+}
+
+// Create a frame with auto layout properties
+function createFrameWithAutoLayout(params) {
+  const { 
+    x, y, width, height, name, parentId,
+    // Auto layout parameters
+    layoutMode,                 // 'HORIZONTAL' or 'VERTICAL'
+    itemSpacing = 0,            // Space between children
+    padding = 0,                // Frame padding (number or object)
+    primaryAxisAlignItems = 'MIN',    // 'MIN', 'CENTER', 'MAX', 'SPACE_BETWEEN'
+    counterAxisAlignItems = 'MIN'     // 'MIN', 'CENTER', 'MAX', 'BASELINE'
+  } = params;
+
+  // Create the frame
+  const frame = figma.createFrame();
+  frame.x = x;
+  frame.y = y;
+  frame.resize(width, height);
+
+  if (name) {
+    frame.name = name;
+  }
+
+  // Apply auto layout properties if specified
+  if (layoutMode) {
+    frame.layoutMode = layoutMode;
+    frame.itemSpacing = itemSpacing;
+    frame.primaryAxisAlignItems = primaryAxisAlignItems;
+    frame.counterAxisAlignItems = counterAxisAlignItems;
+    
+    // Apply padding
+    if (typeof padding === 'number') {
+      // Uniform padding
+      frame.paddingTop = padding;
+      frame.paddingRight = padding;
+      frame.paddingBottom = padding;
+      frame.paddingLeft = padding;
+    } else if (typeof padding === 'object') {
+      // Individual padding values
+      if (padding.top !== undefined) frame.paddingTop = padding.top;
+      if (padding.right !== undefined) frame.paddingRight = padding.right;
+      if (padding.bottom !== undefined) frame.paddingBottom = padding.bottom;
+      if (padding.left !== undefined) frame.paddingLeft = padding.left;
+    }
+  }
+
+  // Add to parent if specified
+  if (parentId) {
+    const parent = figma.getNodeById(parentId);
+    if (parent && 'appendChild' in parent) {
+      parent.appendChild(frame);
+    } else {
+      throw new Error(`Invalid parent node: ${parentId}`);
+    }
+  } else {
+    // Add to current page if no parent is specified
+    figma.currentPage.appendChild(frame);
+  }
+
+  return {
+    id: frame.id,
+    name: frame.name,
+    type: frame.type,
+    x: frame.x,
+    y: frame.y,
+    width: frame.width,
+    height: frame.height,
+    // Auto layout properties
+    layoutMode: layoutMode || null,
+    itemSpacing: layoutMode ? frame.itemSpacing : null,
+    padding: layoutMode ? {
+      top: frame.paddingTop,
+      right: frame.paddingRight,
+      bottom: frame.paddingBottom,
+      left: frame.paddingLeft
+    } : null,
+    primaryAxisAlignItems: layoutMode ? frame.primaryAxisAlignItems : null,
+    counterAxisAlignItems: layoutMode ? frame.counterAxisAlignItems : null
+  };
+}
+
+// Modify auto layout properties of an existing frame
+function modifyAutoLayout(params) {
+  const { 
+    nodeId,
+    layoutMode,                 // 'HORIZONTAL', 'VERTICAL', or null (remove auto layout)
+    itemSpacing,
+    padding,
+    primaryAxisAlignItems,
+    counterAxisAlignItems,
+    primaryAxisSizingMode,     // 'FIXED', 'AUTO', or 'HUG'
+    counterAxisSizingMode      // 'FIXED', 'AUTO', or 'HUG'
+  } = params;
+
+  // Get the node
+  const node = figma.getNodeById(nodeId);
+
+  if (!node) {
+    throw new Error(`Node not found: ${nodeId}`);
+  }
+
+  // Check if the node is a frame, component, component set, instance, or section
+  const validTypes = ['FRAME', 'COMPONENT', 'COMPONENT_SET', 'INSTANCE', 'SECTION'];
+  if (!validTypes.includes(node.type)) {
+    throw new Error(`Node of type ${node.type} does not support auto layout`);
+  }
+
+  // Update auto layout properties
+  if (layoutMode === null) {
+    // Remove auto layout
+    node.layoutMode = 'NONE';
+  } else if (layoutMode) {
+    // Set or modify auto layout
+    node.layoutMode = layoutMode;
+
+    // Update spacing if specified
+    if (itemSpacing !== undefined) {
+      node.itemSpacing = itemSpacing;
+    }
+
+    // Update padding if specified
+    if (padding !== undefined) {
+      if (typeof padding === 'number') {
+        // Uniform padding
+        node.paddingTop = padding;
+        node.paddingRight = padding;
+        node.paddingBottom = padding;
+        node.paddingLeft = padding;
+      } else if (typeof padding === 'object') {
+        // Individual padding values
+        if (padding.top !== undefined) node.paddingTop = padding.top;
+        if (padding.right !== undefined) node.paddingRight = padding.right;
+        if (padding.bottom !== undefined) node.paddingBottom = padding.bottom;
+        if (padding.left !== undefined) node.paddingLeft = padding.left;
+      }
+    }
+
+    // Update alignments if specified
+    if (primaryAxisAlignItems !== undefined) {
+      node.primaryAxisAlignItems = primaryAxisAlignItems;
+    }
+
+    if (counterAxisAlignItems !== undefined) {
+      node.counterAxisAlignItems = counterAxisAlignItems;
+    }
+
+    // Update sizing modes if specified
+    if (primaryAxisSizingMode !== undefined) {
+      node.primaryAxisSizingMode = primaryAxisSizingMode;
+    }
+
+    if (counterAxisSizingMode !== undefined) {
+      node.counterAxisSizingMode = counterAxisSizingMode;
+    }
+  }
+
+  // Return the updated node properties
+  return {
+    id: node.id,
+    name: node.name,
+    type: node.type,
+    layoutMode: node.layoutMode,
+    itemSpacing: node.layoutMode !== 'NONE' ? node.itemSpacing : null,
+    padding: node.layoutMode !== 'NONE' ? {
+      top: node.paddingTop,
+      right: node.paddingRight,
+      bottom: node.paddingBottom,
+      left: node.paddingLeft
+    } : null,
+    primaryAxisAlignItems: node.layoutMode !== 'NONE' ? node.primaryAxisAlignItems : null,
+    counterAxisAlignItems: node.layoutMode !== 'NONE' ? node.counterAxisAlignItems : null,
+    primaryAxisSizingMode: node.layoutMode !== 'NONE' ? node.primaryAxisSizingMode : null,
+    counterAxisSizingMode: node.layoutMode !== 'NONE' ? node.counterAxisSizingMode : null
   };
 }
 
@@ -784,7 +1410,7 @@ function setEffects(params) {
   };
 }
 
-// Get local components
+// Get information about components
 function getLocalComponents() {
   // Get all local components in the document
   const components = [];
@@ -819,6 +1445,368 @@ function getLocalComponents() {
     count: components.length,
     components
   };
+}
+
+// Get detailed component data for a specific component by ID
+async function getComponentData(params) {
+  const { componentId, includeStyles = false, includeVariants = true, includeThumbnail = true } = params;
+  
+  // Get the component
+  const component = figma.getNodeById(componentId);
+  
+  if (!component) {
+    throw new Error(`Component with ID ${componentId} not found`);
+  }
+  
+  if (component.type !== 'COMPONENT' && component.type !== 'COMPONENT_SET') {
+    throw new Error(`Node ${componentId} is not a component or component set`);
+  }
+  
+  const result = {
+    id: component.id,
+    name: component.name,
+    type: component.type,
+    description: component.description || '',
+    key: component.key,
+    width: component.width,
+    height: component.height,
+    remote: component.remote || false,
+  };
+  
+  // Find the page the component is on
+  let parentNode = component.parent;
+  while (parentNode && parentNode.type !== 'PAGE') {
+    parentNode = parentNode.parent;
+  }
+  
+  if (parentNode && parentNode.type === 'PAGE') {
+    result.pageName = parentNode.name;
+  }
+  
+  // Add component properties
+  if (component.type === 'COMPONENT') {
+    result.componentProperties = component.componentPropertyDefinitions || {};
+    
+    // Add style information if requested
+    if (includeStyles) {
+      result.styles = {};
+      
+      // Extract fill styles
+      if ('fills' in component && component.fills.length > 0) {
+        result.styles.fills = component.fills;
+      }
+      
+      // Extract stroke styles
+      if ('strokes' in component && component.strokes.length > 0) {
+        result.styles.strokes = component.strokes;
+      }
+      
+      // Extract effect styles
+      if ('effects' in component && component.effects.length > 0) {
+        result.styles.effects = component.effects;
+      }
+      
+      // Check for text-specific styles
+      if (component.type === 'TEXT') {
+        result.styles.fontSize = component.fontSize;
+        result.styles.fontName = component.fontName;
+        result.styles.textAlignHorizontal = component.textAlignHorizontal;
+        result.styles.textAlignVertical = component.textAlignVertical;
+      }
+      
+      // Check for auto layout properties
+      if ('layoutMode' in component && component.layoutMode !== 'NONE') {
+        result.styles.autoLayout = {
+          layoutMode: component.layoutMode,
+          itemSpacing: component.itemSpacing,
+          paddingTop: component.paddingTop,
+          paddingRight: component.paddingRight,
+          paddingBottom: component.paddingBottom,
+          paddingLeft: component.paddingLeft,
+          primaryAxisAlignItems: component.primaryAxisAlignItems,
+          counterAxisAlignItems: component.counterAxisAlignItems,
+          primaryAxisSizingMode: component.primaryAxisSizingMode,
+          counterAxisSizingMode: component.counterAxisSizingMode
+        };
+      }
+    }
+  }
+  
+  // For component sets, include variant information if requested
+  if (component.type === 'COMPONENT_SET' && includeVariants) {
+    // Get all variants in the set
+    const variants = component.children.filter(child => child.type === 'COMPONENT');
+    
+    result.variantProperties = component.variantGroupProperties || {};
+    result.variants = variants.map(variant => ({
+      id: variant.id,
+      name: variant.name,
+      componentProperties: variant.componentPropertyDefinitions || {},
+      variantProperties: extractVariantProperties(variant.name)
+    }));
+  }
+  
+  // Generate thumbnail if requested
+  if (includeThumbnail) {
+    try {
+      // Export a small thumbnail of the component
+      const bytes = await component.exportAsync({
+        format: 'PNG',
+        constraint: { type: 'SCALE', value: 2 }
+      });
+      
+      // Convert to base64
+      result.thumbnail = figma.base64Encode(bytes);
+    } catch (error) {
+      console.error('Error generating thumbnail:', error);
+      result.thumbnailError = error.message;
+    }
+  }
+  
+  return result;
+}
+
+// Get enhanced component library with more details and filtering options
+async function getEnhancedComponentLibrary(params) {
+  const { 
+    includeRemote = true,        // Include components from team libraries
+    includeLocal = true,         // Include local components
+    includeThumbnails = true,    // Include thumbnails for visual browsing
+    categoryFilter = null,       // Filter by category (from component name e.g., "Buttons/Primary")
+    searchQuery = '',            // Search component names and descriptions
+    pageFilter = null,           // Filter by page name
+    sortBy = 'name',             // Sort by: 'name', 'updated', 'page', or 'category'
+    limit = 100                  // Maximum number of components to return
+  } = params;
+  
+  // Collect all components that match the criteria
+  const allComponents = [];
+  let remoteComponents = [];
+  
+  // Get local components if requested
+  if (includeLocal) {
+    // Process each page in the current document
+    for (const page of figma.root.children) {
+      // Skip page if a page filter is specified and doesn't match
+      if (pageFilter && page.name !== pageFilter) {
+        continue;
+      }
+      
+      // Function to find components recursively
+      function findComponents(node) {
+        if (node.type === 'COMPONENT' || node.type === 'COMPONENT_SET') {
+          // Skip if doesn't match search query
+          if (searchQuery && 
+              !node.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+              !(node.description && node.description.toLowerCase().includes(searchQuery.toLowerCase()))) {
+            return;
+          }
+          
+          // Skip if doesn't match category filter
+          if (categoryFilter) {
+            const category = extractComponentCategory(node.name);
+            if (category !== categoryFilter) {
+              return;
+            }
+          }
+          
+          // Component passed all filters, add it
+          allComponents.push({
+            id: node.id,
+            name: node.name,
+            type: node.type,
+            description: node.description || '',
+            pageName: page.name,
+            key: node.key,
+            remote: false,
+            category: extractComponentCategory(node.name),
+            lastModified: node.lastModified ? new Date(node.lastModified).toISOString() : null,
+            width: node.width,
+            height: node.height,
+            variantCount: node.type === 'COMPONENT_SET' ? node.children.length : 0
+          });
+        }
+        
+        // Recursively search children
+        if ('children' in node) {
+          for (const child of node.children) {
+            findComponents(child);
+          }
+        }
+      }
+      
+      // Start finding components from the page
+      findComponents(page);
+    }
+  }
+  
+  // Get remote components if requested
+  if (includeRemote) {
+    try {
+      // Get metadata for all available team components
+      // This doesn't actually load the components
+      const teamLibraries = await Promise.all(
+        figma.teamLibrary.getAvailableTeamLibrariesAsync()
+      );
+      
+      // Extract remote component info
+      for (const library of teamLibraries) {
+        // Skip if doesn't match search query or category
+        if ((searchQuery && !library.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+            (categoryFilter && !library.name.includes(categoryFilter))) {
+          continue;
+        }
+        
+        remoteComponents.push({
+          id: library.key,  // We don't have the actual ID until we load it
+          name: library.name,
+          type: 'REMOTE_COMPONENT_LIBRARY',
+          description: '',
+          libraryName: library.name,
+          key: library.key,
+          remote: true,
+          category: extractComponentCategory(library.name),
+          lastModified: library.lastModified ? new Date(library.lastModified).toISOString() : null
+        });
+      }
+      
+      // Add remote components to the list
+      allComponents.push(...remoteComponents);
+    } catch (error) {
+      console.error('Error fetching remote components:', error);
+    }
+  }
+  
+  // Sort the components
+  sortComponents(allComponents, sortBy);
+  
+  // Apply limit
+  const limitedComponents = allComponents.slice(0, limit);
+  
+  // Generate thumbnails if requested
+  if (includeThumbnails) {
+    for (const component of limitedComponents) {
+      // Skip remote components or if the component is a library
+      if (component.remote || component.type === 'REMOTE_COMPONENT_LIBRARY') {
+        continue;
+      }
+      
+      try {
+        const node = figma.getNodeById(component.id);
+        if (node) {
+          // Export a small thumbnail
+          const bytes = await node.exportAsync({
+            format: 'PNG',
+            constraint: { type: 'SCALE', value: 0.5 }
+          });
+          
+          // Convert to base64
+          component.thumbnail = figma.base64Encode(bytes);
+        }
+      } catch (error) {
+        console.error(`Error generating thumbnail for component ${component.id}:`, error);
+      }
+    }
+  }
+  
+  // Return the final result
+  return {
+    count: limitedComponents.length,
+    totalAvailable: allComponents.length,
+    local: limitedComponents.filter(c => !c.remote).length,
+    remote: limitedComponents.filter(c => c.remote).length,
+    components: limitedComponents
+  };
+}
+
+// Helper function to extract category from component name (e.g., "Buttons/Primary/Default" -> "Buttons")
+function extractComponentCategory(name) {
+  if (!name) return '';
+  
+  // If the name includes a slash, the category is everything before the first slash
+  const parts = name.split('/');
+  if (parts.length > 1) {
+    return parts[0].trim();
+  }
+  
+  // Otherwise, try to extract a general category
+  const commonCategories = [
+    'Button', 'Card', 'Input', 'Modal', 'Nav', 'Menu', 'Header', 'Footer',
+    'Icon', 'Image', 'Typography', 'Form', 'Table', 'List', 'Dialog', 'Dropdown'
+  ];
+  
+  // Check if the name starts with any of the common categories
+  for (const category of commonCategories) {
+    if (name.startsWith(category) || name.includes(category)) {
+      return category;
+    }
+  }
+  
+  return ''; // No category found
+}
+
+// Helper function to extract variant properties from component name
+function extractVariantProperties(name) {
+  const result = {};
+  
+  if (!name || !name.includes('=')) {
+    return result;
+  }
+  
+  // Component variant names follow the pattern: "Component Name, Prop1=Value1, Prop2=Value2"
+  const parts = name.split(',');
+  
+  // Skip the first part (component name) and process the rest
+  for (let i = 1; i < parts.length; i++) {
+    const propPart = parts[i].trim();
+    const [propName, propValue] = propPart.split('=').map(p => p.trim());
+    
+    if (propName && propValue) {
+      result[propName] = propValue;
+    }
+  }
+  
+  return result;
+}
+
+// Helper function to sort components
+function sortComponents(components, sortBy) {
+  switch (sortBy) {
+    case 'name':
+      components.sort((a, b) => a.name.localeCompare(b.name));
+      break;
+    case 'updated':
+      components.sort((a, b) => {
+        if (!a.lastModified) return 1;
+        if (!b.lastModified) return -1;
+        return new Date(b.lastModified) - new Date(a.lastModified);
+      });
+      break;
+    case 'page':
+      components.sort((a, b) => {
+        if (!a.pageName) return 1;
+        if (!b.pageName) return -1;
+        return a.pageName.localeCompare(b.pageName);
+      });
+      break;
+    case 'category':
+      components.sort((a, b) => {
+        if (!a.category) return 1;
+        if (!b.category) return -1;
+        return a.category.localeCompare(b.category);
+      });
+      break;
+    case 'type':
+      components.sort((a, b) => {
+        if (a.remote && !b.remote) return 1;
+        if (!a.remote && b.remote) return -1;
+        return a.name.localeCompare(b.name);
+      });
+      break;
+    default:
+      // Default to sorting by name
+      components.sort((a, b) => a.name.localeCompare(b.name));
+  }
 }
 
 // Create an instance of a component
@@ -1479,6 +2467,2086 @@ function createComponentSet(params) {
     throw new Error(`Failed to create component set: ${error.message}`);
   }
 }
+
+// Align elements based on specified alignment type
+function alignElements(params) {
+  const { alignmentType, nodeIds, boundingBox } = params;
+  
+  try {
+    // Get the nodes to align (either from nodeIds parameter or current selection)
+    let nodes = [];
+    
+    if (nodeIds && nodeIds.length > 0) {
+      // Get nodes from provided IDs
+      nodes = nodeIds
+        .map(id => figma.getNodeById(id))
+        .filter(node => node && 'x' in node && 'y' in node && 'width' in node && 'height' in node);
+    } else {
+      // Use current selection
+      nodes = figma.currentPage.selection
+        .filter(node => 'x' in node && 'y' in node && 'width' in node && 'height' in node);
+    }
+    
+    if (nodes.length === 0) {
+      throw new Error('No valid nodes to align');
+    }
+    
+    // Calculate reference bounding box (either from parameter or from nodes)
+    let refBox;
+    
+    if (boundingBox) {
+      // Use provided bounding box
+      refBox = boundingBox;
+    } else {
+      // Calculate bounding box from nodes
+      const minX = Math.min(...nodes.map(node => node.x));
+      const minY = Math.min(...nodes.map(node => node.y));
+      const maxX = Math.max(...nodes.map(node => node.x + node.width));
+      const maxY = Math.max(...nodes.map(node => node.y + node.height));
+      
+      refBox = {
+        x: minX,
+        y: minY,
+        width: maxX - minX,
+        height: maxY - minY
+      };
+    }
+    
+    // Perform alignment based on alignmentType
+    switch (alignmentType) {
+      case 'LEFT':
+        nodes.forEach(node => {
+          node.x = refBox.x;
+        });
+        break;
+        
+      case 'RIGHT':
+        nodes.forEach(node => {
+          node.x = refBox.x + refBox.width - node.width;
+        });
+        break;
+        
+      case 'CENTER':
+        nodes.forEach(node => {
+          node.x = refBox.x + (refBox.width - node.width) / 2;
+        });
+        break;
+        
+      case 'TOP':
+        nodes.forEach(node => {
+          node.y = refBox.y;
+        });
+        break;
+        
+      case 'MIDDLE':
+        nodes.forEach(node => {
+          node.y = refBox.y + (refBox.height - node.height) / 2;
+        });
+        break;
+        
+      case 'BOTTOM':
+        nodes.forEach(node => {
+          node.y = refBox.y + refBox.height - node.height;
+        });
+        break;
+        
+      default:
+        throw new Error(`Unknown alignment type: ${alignmentType}`);
+    }
+    
+    // Return information about the aligned nodes
+    return {
+      success: true,
+      alignmentType,
+      nodeCount: nodes.length,
+      nodes: nodes.map(node => ({
+        id: node.id,
+        name: node.name,
+        x: node.x,
+        y: node.y
+      })),
+      referenceBoundingBox: refBox
+    };
+  } catch (error) {
+    throw new Error(`Failed to align elements: ${error.message}`);
+  }
+}
+
+// Distribute elements evenly
+function distributeElements(params) {
+  const { direction, nodeIds, spacing } = params;
+  
+  try {
+    // Get the nodes to distribute (either from nodeIds parameter or current selection)
+    let nodes = [];
+    
+    if (nodeIds && nodeIds.length > 0) {
+      // Get nodes from provided IDs
+      nodes = nodeIds
+        .map(id => figma.getNodeById(id))
+        .filter(node => node && 'x' in node && 'y' in node && 'width' in node && 'height' in node);
+    } else {
+      // Use current selection
+      nodes = figma.currentPage.selection
+        .filter(node => 'x' in node && 'y' in node && 'width' in node && 'height' in node);
+    }
+    
+    if (nodes.length < 3) {
+      throw new Error('Need at least 3 nodes to distribute. For 2 nodes, consider using alignment.');
+    }
+    
+    // Sort nodes by position based on distribution direction
+    if (direction === 'HORIZONTAL') {
+      nodes.sort((a, b) => a.x - b.x);
+    } else { // VERTICAL
+      nodes.sort((a, b) => a.y - b.y);
+    }
+    
+    // Get the first and last nodes (they stay in place)
+    const firstNode = nodes[0];
+    const lastNode = nodes[nodes.length - 1];
+    
+    if (direction === 'HORIZONTAL') {
+      // Calculate total available space
+      const startPos = firstNode.x + firstNode.width;
+      const endPos = lastNode.x;
+      const availableSpace = endPos - startPos;
+      
+      // Calculate positions for nodes between first and last
+      const middleNodes = nodes.slice(1, nodes.length - 1);
+      
+      if (spacing !== undefined) {
+        // Fixed spacing distribution
+        let currentX = firstNode.x + firstNode.width + spacing;
+        
+        for (const node of middleNodes) {
+          node.x = currentX;
+          currentX += node.width + spacing;
+        }
+      } else {
+        // Even distribution across available space
+        const totalMiddleNodesWidth = middleNodes.reduce((sum, node) => sum + node.width, 0);
+        const gaps = middleNodes.length + 1; // Gaps between all nodes including first and last
+        const spacePerGap = (availableSpace - totalMiddleNodesWidth) / gaps;
+        
+        let currentX = firstNode.x + firstNode.width + spacePerGap;
+        
+        for (const node of middleNodes) {
+          node.x = currentX;
+          currentX += node.width + spacePerGap;
+        }
+      }
+    } else { // VERTICAL
+      // Calculate total available space
+      const startPos = firstNode.y + firstNode.height;
+      const endPos = lastNode.y;
+      const availableSpace = endPos - startPos;
+      
+      // Calculate positions for nodes between first and last
+      const middleNodes = nodes.slice(1, nodes.length - 1);
+      
+      if (spacing !== undefined) {
+        // Fixed spacing distribution
+        let currentY = firstNode.y + firstNode.height + spacing;
+        
+        for (const node of middleNodes) {
+          node.y = currentY;
+          currentY += node.height + spacing;
+        }
+      } else {
+        // Even distribution across available space
+        const totalMiddleNodesHeight = middleNodes.reduce((sum, node) => sum + node.height, 0);
+        const gaps = middleNodes.length + 1; // Gaps between all nodes including first and last
+        const spacePerGap = (availableSpace - totalMiddleNodesHeight) / gaps;
+        
+        let currentY = firstNode.y + firstNode.height + spacePerGap;
+        
+        for (const node of middleNodes) {
+          node.y = currentY;
+          currentY += node.height + spacePerGap;
+        }
+      }
+    }
+    
+    // Return information about the distributed nodes
+    return {
+      success: true,
+      direction,
+      nodeCount: nodes.length,
+      fixedSpacing: spacing !== undefined,
+      spacing: spacing !== undefined ? spacing : 'auto',
+      nodes: nodes.map(node => ({
+        id: node.id,
+        name: node.name,
+        x: node.x,
+        y: node.y
+      }))
+    };
+  } catch (error) {
+    throw new Error(`Failed to distribute elements: ${error.message}`);
+  }
+}
+
+// Create an advanced grid layout
+function createGridLayout(params) {
+  const {
+    columns,
+    rows,
+    itemCount,
+    columnGap = 16,
+    rowGap = 16,
+    cellWidth,
+    cellHeight,
+    parentId,
+    x = 0,
+    y = 0,
+    name = 'Grid Layout',
+    fillItems = true,
+    useAutoLayout = true,
+    responsive = false,
+    templateAreas
+  } = params;
+  
+  try {
+    // Calculate number of rows if not provided
+    const calculatedRows = rows || (itemCount ? Math.ceil(itemCount / columns) : 2);
+    const actualRows = rows || calculatedRows;
+    
+    // Calculate the total size of the grid
+    const totalWidth = columns * cellWidth + (columns - 1) * columnGap;
+    const totalHeight = actualRows * cellHeight + (actualRows - 1) * rowGap;
+    
+    // Create the main frame for the grid
+    const gridFrame = figma.createFrame();
+    gridFrame.name = name;
+    gridFrame.x = x;
+    gridFrame.y = y;
+    gridFrame.resize(totalWidth, totalHeight);
+    
+    // Store created cell nodes
+    const cells = [];
+    
+    // Track named areas if templateAreas is provided
+    const namedAreas = {};
+    
+    if (templateAreas) {
+      // Parse template areas (similar to CSS grid-template-areas)
+      // Each string in the array represents a row, and each word represents a cell
+      // For example: ["header header", "sidebar content", "footer footer"]
+      
+      for (let rowIndex = 0; rowIndex < templateAreas.length; rowIndex++) {
+        const row = templateAreas[rowIndex];
+        const areas = row.split(/\s+/).filter(area => area.length > 0);
+        
+        for (let colIndex = 0; colIndex < areas.length && colIndex < columns; colIndex++) {
+          const area = areas[colIndex];
+          
+          if (area !== '.') { // '.' is used for empty cells in CSS grid-template-areas
+            if (!namedAreas[area]) {
+              namedAreas[area] = [];
+            }
+            
+            namedAreas[area].push({ row: rowIndex, col: colIndex });
+          }
+        }
+      }
+    }
+    
+    if (useAutoLayout) {
+      // Use auto layout for the grid
+      gridFrame.layoutMode = 'VERTICAL';
+      gridFrame.primaryAxisAlignItems = 'MIN';
+      gridFrame.counterAxisAlignItems = 'MIN';
+      gridFrame.itemSpacing = rowGap;
+      gridFrame.paddingTop = 0;
+      gridFrame.paddingRight = 0;
+      gridFrame.paddingBottom = 0;
+      gridFrame.paddingLeft = 0;
+      
+      if (responsive) {
+        gridFrame.primaryAxisSizingMode = 'AUTO';
+        gridFrame.counterAxisSizingMode = 'FIXED';
+      }
+      
+      // Create rows with horizontal auto layout
+      for (let rowIndex = 0; rowIndex < actualRows; rowIndex++) {
+        const rowFrame = figma.createFrame();
+        rowFrame.name = `Row ${rowIndex + 1}`;
+        rowFrame.layoutMode = 'HORIZONTAL';
+        rowFrame.primaryAxisAlignItems = 'MIN';
+        rowFrame.counterAxisAlignItems = 'MIN';
+        rowFrame.itemSpacing = columnGap;
+        rowFrame.resize(totalWidth, cellHeight);
+        rowFrame.paddingTop = 0;
+        rowFrame.paddingRight = 0;
+        rowFrame.paddingBottom = 0;
+        rowFrame.paddingLeft = 0;
+        
+        if (responsive) {
+          rowFrame.primaryAxisSizingMode = 'FIXED';
+          rowFrame.counterAxisSizingMode = 'AUTO';
+        }
+        
+        gridFrame.appendChild(rowFrame);
+        
+        // Create cells in each row
+        for (let colIndex = 0; colIndex < columns; colIndex++) {
+          const cellFrame = figma.createFrame();
+          cellFrame.name = `Cell ${rowIndex + 1}-${colIndex + 1}`;
+          cellFrame.resize(cellWidth, cellHeight);
+          
+          // Check if this cell is part of a named area
+          let areaName = null;
+          for (const [name, coords] of Object.entries(namedAreas)) {
+            if (coords.some(coord => coord.row === rowIndex && coord.col === colIndex)) {
+              areaName = name;
+              break;
+            }
+          }
+          
+          if (areaName) {
+            cellFrame.name = areaName;
+          }
+          
+          if (fillItems) {
+            // Create a placeholder rectangle in the cell
+            const rect = figma.createRectangle();
+            rect.name = 'Placeholder';
+            rect.resize(cellWidth - 16, cellHeight - 16); // Smaller than the cell for padding
+            rect.x = 8;
+            rect.y = 8;
+            rect.fills = [{ type: 'SOLID', color: { r: 0.9, g: 0.9, b: 0.9 } }];
+            rect.cornerRadius = 4;
+            
+            cellFrame.appendChild(rect);
+          }
+          
+          rowFrame.appendChild(cellFrame);
+          cells.push(cellFrame);
+        }
+      }
+    } else {
+      // Create grid without auto layout (absolute positioning)
+      for (let rowIndex = 0; rowIndex < actualRows; rowIndex++) {
+        for (let colIndex = 0; colIndex < columns; colIndex++) {
+          const cellFrame = figma.createFrame();
+          cellFrame.name = `Cell ${rowIndex + 1}-${colIndex + 1}`;
+          cellFrame.resize(cellWidth, cellHeight);
+          cellFrame.x = colIndex * (cellWidth + columnGap);
+          cellFrame.y = rowIndex * (cellHeight + rowGap);
+          
+          // Check if this cell is part of a named area
+          let areaName = null;
+          for (const [name, coords] of Object.entries(namedAreas)) {
+            if (coords.some(coord => coord.row === rowIndex && coord.col === colIndex)) {
+              areaName = name;
+              break;
+            }
+          }
+          
+          if (areaName) {
+            cellFrame.name = areaName;
+          }
+          
+          if (fillItems) {
+            // Create a placeholder rectangle in the cell
+            const rect = figma.createRectangle();
+            rect.name = 'Placeholder';
+            rect.resize(cellWidth - 16, cellHeight - 16); // Smaller than the cell for padding
+            rect.x = 8;
+            rect.y = 8;
+            rect.fills = [{ type: 'SOLID', color: { r: 0.9, g: 0.9, b: 0.9 } }];
+            rect.cornerRadius = 4;
+            
+            cellFrame.appendChild(rect);
+          }
+          
+          gridFrame.appendChild(cellFrame);
+          cells.push(cellFrame);
+        }
+      }
+    }
+    
+    // Add to parent if specified
+    if (parentId) {
+      const parent = figma.getNodeById(parentId);
+      if (parent && 'appendChild' in parent) {
+        parent.appendChild(gridFrame);
+      } else {
+        throw new Error(`Invalid parent node: ${parentId}`);
+      }
+    } else {
+      // Add to current page if no parent is specified
+      figma.currentPage.appendChild(gridFrame);
+    }
+    
+    // Return information about the created grid
+    return {
+      success: true,
+      id: gridFrame.id,
+      name: gridFrame.name,
+      width: gridFrame.width,
+      height: gridFrame.height,
+      columns,
+      rows: actualRows,
+      cellCount: cells.length,
+      useAutoLayout,
+      responsive,
+      cells: cells.map(cell => ({
+        id: cell.id,
+        name: cell.name,
+        x: cell.x,
+        y: cell.y,
+        width: cell.width,
+        height: cell.height
+      })),
+      namedAreas: Object.keys(namedAreas)
+    };
+  } catch (error) {
+    throw new Error(`Failed to create grid layout: ${error.message}`);
+  }
+}
+
+// Batch edit component properties
+function batchEditComponentProperties(params) {
+  const { updates, propertyPresets, propertyFilter, applyToSelection } = params;
+  
+  try {
+    // Track successful and failed updates
+    const results = {
+      successful: [],
+      failed: []
+    };
+    
+    // Process updates from the explicit updates array
+    if (updates && updates.length > 0) {
+      for (const update of updates) {
+        try {
+          const { instanceId, properties } = update;
+          
+          // Get the component instance
+          const instance = figma.getNodeById(instanceId);
+          
+          if (!instance) {
+            throw new Error(`Instance with ID ${instanceId} not found`);
+          }
+          
+          if (instance.type !== 'INSTANCE') {
+            throw new Error(`Node ${instanceId} is not a component instance`);
+          }
+          
+          // Apply property updates
+          applyProperties(instance, properties, propertyFilter);
+          
+          // Track successful update
+          results.successful.push({
+            id: instance.id,
+            name: instance.name,
+            updatedProperties: Object.keys(properties)
+          });
+        } catch (error) {
+          // Track failed update
+          results.failed.push({
+            instanceId: update.instanceId,
+            error: error.message
+          });
+        }
+      }
+    }
+    
+    // Process selection if requested
+    if (applyToSelection) {
+      const selectedInstances = figma.currentPage.selection.filter(node => node.type === 'INSTANCE');
+      
+      for (const instance of selectedInstances) {
+        try {
+          if (propertyPresets) {
+            // Apply presets to this instance
+            applyProperties(instance, propertyPresets, propertyFilter);
+            
+            // Track successful update
+            results.successful.push({
+              id: instance.id,
+              name: instance.name,
+              updatedProperties: Object.keys(propertyPresets)
+            });
+          } else {
+            // Skip if no presets and this instance was already updated in the updates array
+            if (updates && updates.some(update => update.instanceId === instance.id)) {
+              continue;
+            }
+            
+            throw new Error('No property presets defined for selection');
+          }
+        } catch (error) {
+          // Track failed update
+          results.failed.push({
+            instanceId: instance.id,
+            error: error.message
+          });
+        }
+      }
+    }
+    
+    return {
+      success: results.successful.length > 0,
+      updatedCount: results.successful.length,
+      failedCount: results.failed.length,
+      successful: results.successful,
+      failed: results.failed
+    };
+  } catch (error) {
+    throw new Error(`Failed to batch edit component properties: ${error.message}`);
+  }
+}
+
+// Helper function to apply properties to a component instance
+function applyProperties(instance, properties, propertyFilter) {
+  // Get the instance's existing component properties
+  const componentProperties = instance.componentProperties;
+  
+  // Filter properties based on propertyFilter if provided
+  let filteredProperties = { ...properties };
+  
+  if (propertyFilter) {
+    if (propertyFilter.names && propertyFilter.names.length > 0) {
+      // Filter by property names
+      filteredProperties = Object.fromEntries(
+        Object.entries(filteredProperties).filter(([key]) => 
+          propertyFilter.names.includes(key)
+        )
+      );
+    }
+    
+    if (propertyFilter.types && propertyFilter.types.length > 0) {
+      // Filter by property types
+      filteredProperties = Object.fromEntries(
+        Object.entries(filteredProperties).filter(([key]) => {
+          const property = componentProperties[key];
+          return property && propertyFilter.types.includes(property.type);
+        })
+      );
+    }
+  }
+  
+  // Check if there are any properties left after filtering
+  if (Object.keys(filteredProperties).length === 0) {
+    throw new Error('No properties left after applying filters');
+  }
+  
+  // Create final property updates object
+  const updates = {};
+  
+  // Validate each property before applying
+  for (const [key, value] of Object.entries(filteredProperties)) {
+    const propertyDef = componentProperties[key];
+    
+    if (!propertyDef) {
+      throw new Error(`Property ${key} does not exist on this component instance`);
+    }
+    
+    // Type check/coercion based on property type
+    switch (propertyDef.type) {
+      case 'TEXT':
+        // Ensure value is a string
+        updates[key] = String(value);
+        break;
+        
+      case 'BOOLEAN':
+        // Ensure value is a boolean
+        updates[key] = Boolean(value);
+        break;
+        
+      case 'INSTANCE_SWAP':
+        // Value should be a component key
+        if (typeof value !== 'string') {
+          throw new Error(`Invalid value for INSTANCE_SWAP property ${key}: ${value}`);
+        }
+        updates[key] = value;
+        break;
+        
+      case 'VARIANT':
+        // Value should be a string (variant name)
+        if (typeof value !== 'string') {
+          throw new Error(`Invalid value for VARIANT property ${key}: ${value}`);
+        }
+        updates[key] = value;
+        break;
+        
+      default:
+        throw new Error(`Unknown property type: ${propertyDef.type}`);
+    }
+  }
+  
+  // Apply the validated updates
+  instance.setProperties(updates);
+  
+  return Object.keys(updates);
+}
+
+// Design Token Converter
+function convertDesignTokens(params) {
+  const { 
+    source, 
+    target, 
+    collectionId, 
+    tokens,
+    prefix = '',
+    nameFormat = 'kebab-case',
+    includeComments = true,
+    groupByCategory = true
+  } = params;
+  
+  try {
+    // For converting from Figma variables to other formats
+    if (source === 'figma') {
+      // Get the variables from the specified collection
+      let variables;
+      
+      if (collectionId) {
+        const collection = figma.variables.getVariableCollectionById(collectionId);
+        if (!collection) {
+          throw new Error(`Variable collection not found: ${collectionId}`);
+        }
+        
+        // Get variables from this collection
+        variables = collection.variableIds.map(id => {
+          const variable = figma.variables.getVariableById(id);
+          return {
+            id: variable.id,
+            name: variable.name,
+            type: variable.resolvedType,
+            valuesByMode: variable.valuesByMode
+          };
+        });
+      } else {
+        // Get all variables from all collections
+        const collections = figma.variables.getLocalVariableCollections();
+        variables = [];
+        
+        for (const collection of collections) {
+          const collectionVariables = collection.variableIds.map(id => {
+            const variable = figma.variables.getVariableById(id);
+            return {
+              id: variable.id,
+              name: variable.name,
+              type: variable.resolvedType,
+              valuesByMode: variable.valuesByMode,
+              collection: collection.name
+            };
+          });
+          
+          variables.push(...collectionVariables);
+        }
+      }
+      
+      // Convert variables to the target format
+      switch (target) {
+        case 'css':
+          return convertToCss(variables, { prefix, nameFormat, includeComments, groupByCategory });
+          
+        case 'scss':
+          return convertToScss(variables, { prefix, nameFormat, includeComments, groupByCategory });
+          
+        case 'js':
+          return convertToJs(variables, { prefix, nameFormat, includeComments, groupByCategory });
+          
+        case 'json':
+          return convertToJson(variables, { prefix, nameFormat, includeComments, groupByCategory });
+          
+        case 'tailwind':
+          return convertToTailwind(variables, { prefix, nameFormat, includeComments, groupByCategory });
+          
+        case 'android':
+          return convertToAndroid(variables, { prefix, nameFormat, includeComments, groupByCategory });
+          
+        case 'ios':
+          return convertToIos(variables, { prefix, nameFormat, includeComments, groupByCategory });
+          
+        default:
+          throw new Error(`Unsupported target format: ${target}`);
+      }
+    }
+    // For converting from other formats to Figma variables
+    else {
+      // Parse the tokens
+      let parsedTokens;
+      
+      if (!tokens) {
+        throw new Error('Tokens parameter is required when source is not "figma"');
+      }
+      
+      try {
+        parsedTokens = JSON.parse(tokens);
+      } catch (error) {
+        throw new Error(`Invalid JSON format in tokens parameter: ${error.message}`);
+      }
+      
+      // Process tokens based on the source format
+      let processedTokens;
+      
+      switch (source) {
+        case 'json':
+          processedTokens = processJsonTokens(parsedTokens);
+          break;
+          
+        case 'css':
+          processedTokens = processCssTokens(parsedTokens);
+          break;
+          
+        case 'scss':
+          processedTokens = processScssTokens(parsedTokens);
+          break;
+          
+        case 'js':
+          processedTokens = processJsTokens(parsedTokens);
+          break;
+          
+        case 'tailwind':
+          processedTokens = processTailwindTokens(parsedTokens);
+          break;
+          
+        case 'android':
+          processedTokens = processAndroidTokens(parsedTokens);
+          break;
+          
+        case 'ios':
+          processedTokens = processIosTokens(parsedTokens);
+          break;
+          
+        default:
+          throw new Error(`Unsupported source format: ${source}`);
+      }
+      
+      // Convert to Figma variables
+      if (target === 'figma') {
+        return importTokensToFigma(processedTokens, { prefix, nameFormat });
+      } else {
+        // Converting between non-Figma formats
+        switch (target) {
+          case 'css':
+            return convertToCss(processedTokens, { prefix, nameFormat, includeComments, groupByCategory });
+            
+          case 'scss':
+            return convertToScss(processedTokens, { prefix, nameFormat, includeComments, groupByCategory });
+            
+          case 'js':
+            return convertToJs(processedTokens, { prefix, nameFormat, includeComments, groupByCategory });
+            
+          case 'json':
+            return convertToJson(processedTokens, { prefix, nameFormat, includeComments, groupByCategory });
+            
+          case 'tailwind':
+            return convertToTailwind(processedTokens, { prefix, nameFormat, includeComments, groupByCategory });
+            
+          case 'android':
+            return convertToAndroid(processedTokens, { prefix, nameFormat, includeComments, groupByCategory });
+            
+          case 'ios':
+            return convertToIos(processedTokens, { prefix, nameFormat, includeComments, groupByCategory });
+            
+          default:
+            throw new Error(`Unsupported target format: ${target}`);
+        }
+      }
+    }
+  } catch (error) {
+    throw new Error(`Failed to convert design tokens: ${error.message}`);
+  }
+}
+
+// Helper function to format variable names according to the specified format
+function formatVariableName(name, format, prefix = '') {
+  // Clean the name: remove special characters and spaces
+  let cleanName = name.replace(/[^\w\s-\/]/g, '').trim();
+  
+  // Split by slashes, spaces, and hyphens
+  const parts = cleanName.split(/[\/\s-_]+/);
+  
+  // Format based on specified convention
+  let formattedName;
+  
+  switch (format) {
+    case 'camelCase':
+      formattedName = parts[0].toLowerCase() + 
+                     parts.slice(1).map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join('');
+      break;
+      
+    case 'PascalCase':
+      formattedName = parts.map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join('');
+      break;
+      
+    case 'snake_case':
+      formattedName = parts.map(p => p.toLowerCase()).join('_');
+      break;
+      
+    case 'kebab-case':
+    default:
+      formattedName = parts.map(p => p.toLowerCase()).join('-');
+      break;
+  }
+  
+  // Add prefix if provided
+  return prefix ? `${prefix}${formattedName}` : formattedName;
+}
+
+// Helper function to get CSS-compatible color value
+function getCssColorValue(colorObj) {
+  // Check if it's a RGB color object
+  if (colorObj && 'r' in colorObj && 'g' in colorObj && 'b' in colorObj) {
+    const r = Math.round(colorObj.r * 255);
+    const g = Math.round(colorObj.g * 255);
+    const b = Math.round(colorObj.b * 255);
+    
+    if ('a' in colorObj && colorObj.a < 1) {
+      return `rgba(${r}, ${g}, ${b}, ${colorObj.a.toFixed(2)})`;
+    } else {
+      // Convert to hex
+      return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    }
+  }
+  
+  // Return the value as-is if it's not a color object
+  return colorObj;
+}
+
+// Helper function to convert variables to CSS custom properties
+function convertToCss(variables, options) {
+  const { prefix, nameFormat, includeComments, groupByCategory } = options;
+  
+  let cssOutput = ':root {\n';
+  
+  // Group variables by category if requested
+  if (groupByCategory) {
+    // Group by extracting category from variable name (before first slash or separator)
+    const grouped = {};
+    
+    for (const variable of variables) {
+      // Extract category from name
+      const category = variable.name.split(/[\/\s-_]/)[0];
+      
+      if (!grouped[category]) {
+        grouped[category] = [];
+      }
+      
+      grouped[category].push(variable);
+    }
+    
+    // Process each group
+    for (const [category, vars] of Object.entries(grouped)) {
+      if (includeComments) {
+        cssOutput += `\n  /* ${category.toUpperCase()} */\n`;
+      }
+      
+      for (const variable of vars) {
+        const varName = formatVariableName(variable.name, nameFormat, prefix);
+        
+        // Get the value from the first mode
+        const modeId = Object.keys(variable.valuesByMode)[0];
+        let value = variable.valuesByMode[modeId];
+        
+        // Format value based on variable type
+        if (variable.type === 'COLOR') {
+          value = getCssColorValue(value);
+        } else if (variable.type === 'FLOAT' && typeof value === 'number') {
+          // Add 'px' for spacing variables if they don't have units
+          if (variable.name.includes('spacing') || variable.name.includes('size') || 
+              variable.name.includes('width') || variable.name.includes('height') || 
+              variable.name.includes('margin') || variable.name.includes('padding')) {
+            value = `${value}px`;
+          }
+        }
+        
+        cssOutput += `  --${varName}: ${value};\n`;
+      }
+    }
+  } else {
+    // No grouping, process all variables sequentially
+    for (const variable of variables) {
+      const varName = formatVariableName(variable.name, nameFormat, prefix);
+      
+      // Include a comment with the original variable name if requested
+      if (includeComments) {
+        cssOutput += `  /* ${variable.name} (${variable.type}) */\n`;
+      }
+      
+      // Get the value from the first mode
+      const modeId = Object.keys(variable.valuesByMode)[0];
+      let value = variable.valuesByMode[modeId];
+      
+      // Format value based on variable type
+      if (variable.type === 'COLOR') {
+        value = getCssColorValue(value);
+      } else if (variable.type === 'FLOAT' && typeof value === 'number') {
+        // Add 'px' for spacing variables if they don't have units
+        if (variable.name.includes('spacing') || variable.name.includes('size') || 
+            variable.name.includes('width') || variable.name.includes('height') || 
+            variable.name.includes('margin') || variable.name.includes('padding')) {
+          value = `${value}px`;
+        }
+      }
+      
+      cssOutput += `  --${varName}: ${value};\n`;
+    }
+  }
+  
+  cssOutput += '}\n';
+  
+  return {
+    format: 'css',
+    code: cssOutput,
+    variableCount: variables.length
+  };
+}
+
+// Helper function to convert variables to SCSS variables
+function convertToScss(variables, options) {
+  const { prefix, nameFormat, includeComments, groupByCategory } = options;
+  
+  let scssOutput = '';
+  
+  // Group variables by category if requested
+  if (groupByCategory) {
+    // Group by extracting category from variable name (before first slash or separator)
+    const grouped = {};
+    
+    for (const variable of variables) {
+      // Extract category from name
+      const category = variable.name.split(/[\/\s-_]/)[0];
+      
+      if (!grouped[category]) {
+        grouped[category] = [];
+      }
+      
+      grouped[category].push(variable);
+    }
+    
+    // Process each group
+    for (const [category, vars] of Object.entries(grouped)) {
+      if (includeComments) {
+        scssOutput += `\n// ${category.toUpperCase()}\n`;
+      }
+      
+      for (const variable of vars) {
+        const varName = formatVariableName(variable.name, nameFormat, prefix);
+        
+        // Get the value from the first mode
+        const modeId = Object.keys(variable.valuesByMode)[0];
+        let value = variable.valuesByMode[modeId];
+        
+        // Format value based on variable type
+        if (variable.type === 'COLOR') {
+          value = getCssColorValue(value);
+        } else if (variable.type === 'FLOAT' && typeof value === 'number') {
+          // Add 'px' for spacing variables if they don't have units
+          if (variable.name.includes('spacing') || variable.name.includes('size') || 
+              variable.name.includes('width') || variable.name.includes('height') || 
+              variable.name.includes('margin') || variable.name.includes('padding')) {
+            value = `${value}px`;
+          }
+        }
+        
+        scssOutput += `${varName}: ${value};\n`;
+      }
+    }
+  } else {
+    // No grouping, process all variables sequentially
+    for (const variable of variables) {
+      const varName = formatVariableName(variable.name, nameFormat, prefix);
+      
+      // Include a comment with the original variable name if requested
+      if (includeComments) {
+        scssOutput += `// ${variable.name} (${variable.type})\n`;
+      }
+      
+      // Get the value from the first mode
+      const modeId = Object.keys(variable.valuesByMode)[0];
+      let value = variable.valuesByMode[modeId];
+      
+      // Format value based on variable type
+      if (variable.type === 'COLOR') {
+        value = getCssColorValue(value);
+      } else if (variable.type === 'FLOAT' && typeof value === 'number') {
+        // Add 'px' for spacing variables if they don't have units
+        if (variable.name.includes('spacing') || variable.name.includes('size') || 
+            variable.name.includes('width') || variable.name.includes('height') || 
+            variable.name.includes('margin') || variable.name.includes('padding')) {
+          value = `${value}px`;
+        }
+      }
+      
+      scssOutput += `${varName}: ${value};\n`;
+    }
+  }
+  
+  return {
+    format: 'scss',
+    code: scssOutput,
+    variableCount: variables.length
+  };
+}
+
+// Helper function to convert variables to JavaScript constants
+function convertToJs(variables, options) {
+  const { prefix, nameFormat, includeComments, groupByCategory } = options;
+  
+  let jsOutput = '';
+  
+  // Group variables by category if requested
+  if (groupByCategory) {
+    // Group by extracting category from variable name (before first slash or separator)
+    const grouped = {};
+    
+    for (const variable of variables) {
+      // Extract category from name
+      const category = variable.name.split(/[\/\s-_]/)[0];
+      
+      if (!grouped[category]) {
+        grouped[category] = [];
+      }
+      
+      grouped[category].push(variable);
+    }
+    
+    // Process each group
+    for (const [category, vars] of Object.entries(grouped)) {
+      if (includeComments) {
+        jsOutput += `\n// ${category.toUpperCase()}\n`;
+      }
+      
+      jsOutput += `export const ${category.toUpperCase()} = {\n`;
+      
+      for (const variable of vars) {
+        let propName = formatVariableName(variable.name.replace(category, '').replace(/^[\/\s-_]+/, ''), nameFormat);
+        if (!propName) {
+          propName = 'default'; // Use 'default' if there's no name after removing the category
+        }
+        
+        // Get the value from the first mode
+        const modeId = Object.keys(variable.valuesByMode)[0];
+        let value = variable.valuesByMode[modeId];
+        
+        // Format value based on variable type
+        if (variable.type === 'COLOR') {
+          value = `"${getCssColorValue(value)}"`;
+        } else if (variable.type === 'STRING') {
+          value = `"${value}"`;
+        } else if (variable.type === 'FLOAT' && typeof value === 'number') {
+          value = value;
+        }
+        
+        jsOutput += `  ${propName}: ${value},\n`;
+      }
+      
+      jsOutput += `};\n`;
+    }
+  } else {
+    // No grouping, export all variables as constants
+    for (const variable of variables) {
+      const constName = formatVariableName(variable.name, 'PascalCase', prefix); // Constants are typically PascalCase
+      
+      // Include a comment with the original variable name if requested
+      if (includeComments) {
+        jsOutput += `// ${variable.name} (${variable.type})\n`;
+      }
+      
+      // Get the value from the first mode
+      const modeId = Object.keys(variable.valuesByMode)[0];
+      let value = variable.valuesByMode[modeId];
+      
+      // Format value based on variable type
+      if (variable.type === 'COLOR') {
+        value = `"${getCssColorValue(value)}"`;
+      } else if (variable.type === 'STRING') {
+        value = `"${value}"`;
+      }
+      
+      jsOutput += `export const ${constName} = ${value};\n`;
+    }
+  }
+  
+  return {
+    format: 'js',
+    code: jsOutput,
+    variableCount: variables.length
+  };
+}
+
+// Helper function to convert variables to JSON format
+function convertToJson(variables, options) {
+  const { prefix, nameFormat, includeComments, groupByCategory } = options;
+  
+  // Create the output structure
+  const output = {};
+  
+  // Group variables by category if requested
+  if (groupByCategory) {
+    // Group by extracting category from variable name (before first slash or separator)
+    for (const variable of variables) {
+      // Extract category from name
+      const category = variable.name.split(/[\/\s-_]/)[0];
+      
+      if (!output[category]) {
+        output[category] = {};
+      }
+      
+      // Create a clean property name without the category prefix
+      let propName = formatVariableName(variable.name.replace(category, '').replace(/^[\/\s-_]+/, ''), nameFormat);
+      if (!propName) {
+        propName = 'default'; // Use 'default' if there's no name after removing the category
+      }
+      
+      // Get the value from the first mode
+      const modeId = Object.keys(variable.valuesByMode)[0];
+      let value = variable.valuesByMode[modeId];
+      
+      // Format value based on variable type
+      if (variable.type === 'COLOR') {
+        value = getCssColorValue(value);
+      }
+      
+      // Add value to the output
+      output[category][propName] = value;
+    }
+  } else {
+    // No grouping, flat structure
+    for (const variable of variables) {
+      const propName = formatVariableName(variable.name, nameFormat, prefix);
+      
+      // Get the value from the first mode
+      const modeId = Object.keys(variable.valuesByMode)[0];
+      let value = variable.valuesByMode[modeId];
+      
+      // Format value based on variable type
+      if (variable.type === 'COLOR') {
+        value = getCssColorValue(value);
+      }
+      
+      // Add metadata if comments are requested
+      if (includeComments) {
+        output[propName] = {
+          value: value,
+          type: variable.type,
+          original_name: variable.name
+        };
+      } else {
+        output[propName] = value;
+      }
+    }
+  }
+  
+  return {
+    format: 'json',
+    code: JSON.stringify(output, null, 2),
+    variableCount: variables.length
+  };
+}
+
+// Helper function to convert variables to Tailwind configuration
+function convertToTailwind(variables, options) {
+  const { prefix, nameFormat, includeComments, groupByCategory } = options;
+  
+  let tailwindOutput = 'module.exports = {\n';
+  tailwindOutput += '  theme: {\n';
+  tailwindOutput += '    extend: {\n';
+  
+  // Maps for different Tailwind property groups
+  const colorVars = [];
+  const spacingVars = [];
+  const fontSizeVars = [];
+  const borderRadiusVars = [];
+  const otherVars = [];
+  
+  // Categorize variables
+  for (const variable of variables) {
+    const varName = formatVariableName(variable.name, nameFormat);
+    const modeId = Object.keys(variable.valuesByMode)[0];
+    let value = variable.valuesByMode[modeId];
+    
+    // Format and categorize by variable type and name
+    if (variable.type === 'COLOR') {
+      value = getCssColorValue(value);
+      colorVars.push({ name: varName, value, original: variable.name });
+    } else if (variable.type === 'FLOAT' && typeof value === 'number') {
+      if (variable.name.includes('spacing') || variable.name.includes('margin') || variable.name.includes('padding') || variable.name.includes('gap')) {
+        spacingVars.push({ name: varName, value: `${value}px`, original: variable.name });
+      } else if (variable.name.includes('fontSize') || variable.name.includes('text-size')) {
+        fontSizeVars.push({ name: varName, value: `${value}px`, original: variable.name });
+      } else if (variable.name.includes('radius') || variable.name.includes('corner')) {
+        borderRadiusVars.push({ name: varName, value: `${value}px`, original: variable.name });
+      } else {
+        otherVars.push({ name: varName, value: `${value}px`, original: variable.name });
+      }
+    } else {
+      otherVars.push({ name: varName, value, original: variable.name });
+    }
+  }
+  
+  // Add colors
+  if (colorVars.length > 0) {
+    tailwindOutput += '      colors: {\n';
+    
+    for (const colorVar of colorVars) {
+      if (includeComments) {
+        tailwindOutput += `        // ${colorVar.original}\n`;
+      }
+      tailwindOutput += `        '${colorVar.name}': '${colorVar.value}',\n`;
+    }
+    
+    tailwindOutput += '      },\n';
+  }
+  
+  // Add spacing
+  if (spacingVars.length > 0) {
+    tailwindOutput += '      spacing: {\n';
+    
+    for (const spacingVar of spacingVars) {
+      if (includeComments) {
+        tailwindOutput += `        // ${spacingVar.original}\n`;
+      }
+      tailwindOutput += `        '${spacingVar.name}': '${spacingVar.value}',\n`;
+    }
+    
+    tailwindOutput += '      },\n';
+  }
+  
+  // Add fontSize
+  if (fontSizeVars.length > 0) {
+    tailwindOutput += '      fontSize: {\n';
+    
+    for (const fontSizeVar of fontSizeVars) {
+      if (includeComments) {
+        tailwindOutput += `        // ${fontSizeVar.original}\n`;
+      }
+      tailwindOutput += `        '${fontSizeVar.name}': '${fontSizeVar.value}',\n`;
+    }
+    
+    tailwindOutput += '      },\n';
+  }
+  
+  // Add borderRadius
+  if (borderRadiusVars.length > 0) {
+    tailwindOutput += '      borderRadius: {\n';
+    
+    for (const borderRadiusVar of borderRadiusVars) {
+      if (includeComments) {
+        tailwindOutput += `        // ${borderRadiusVar.original}\n`;
+      }
+      tailwindOutput += `        '${borderRadiusVar.name}': '${borderRadiusVar.value}',\n`;
+    }
+    
+    tailwindOutput += '      },\n';
+  }
+  
+  // Close the configuration
+  tailwindOutput += '    },\n';
+  tailwindOutput += '  },\n';
+  tailwindOutput += '};\n';
+  
+  return {
+    format: 'tailwind',
+    code: tailwindOutput,
+    variableCount: variables.length
+  };
+}
+
+// Helper function to convert variables to Android resource format (XML)
+function convertToAndroid(variables, options) {
+  const { prefix, nameFormat, includeComments, groupByCategory } = options;
+  
+  // Create separate outputs for colors and dimensions
+  let colorOutput = '<?xml version="1.0" encoding="utf-8"?>\n';
+  colorOutput += '<resources>\n';
+  
+  let dimenOutput = '<?xml version="1.0" encoding="utf-8"?>\n';
+  dimenOutput += '<resources>\n';
+  
+  // Android format prefers snake_case
+  const actualNameFormat = 'snake_case';
+  
+  // Process variables
+  const colorVars = [];
+  const dimenVars = [];
+  
+  for (const variable of variables) {
+    const varName = formatVariableName(variable.name, actualNameFormat, prefix);
+    const modeId = Object.keys(variable.valuesByMode)[0];
+    let value = variable.valuesByMode[modeId];
+    
+    if (variable.type === 'COLOR') {
+      // Convert to Android color format (#AARRGGBB or #RRGGBB)
+      let colorValue = getCssColorValue(value);
+      
+      // Convert from CSS rgba to Android alpha format if needed
+      if (colorValue.startsWith('rgba')) {
+        const matches = colorValue.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
+        if (matches) {
+          const r = parseInt(matches[1]);
+          const g = parseInt(matches[2]);
+          const b = parseInt(matches[3]);
+          const a = Math.round(parseFloat(matches[4]) * 255);
+          colorValue = `#${a.toString(16).padStart(2, '0')}${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+        }
+      }
+      
+      colorVars.push({ name: varName, value: colorValue, original: variable.name });
+    } else if (variable.type === 'FLOAT' && typeof value === 'number') {
+      // Convert to Android dimension format (dp or sp)
+      let dimenUnit = 'dp';
+      // Use sp for font sizes
+      if (variable.name.includes('font') || variable.name.includes('text-size') || variable.name.includes('typography')) {
+        dimenUnit = 'sp';
+      }
+      
+      dimenVars.push({ name: varName, value: `${value}${dimenUnit}`, original: variable.name });
+    }
+  }
+  
+  // Add color resources
+  for (const colorVar of colorVars) {
+    if (includeComments) {
+      colorOutput += `    <!-- ${colorVar.original} -->\n`;
+    }
+    colorOutput += `    <color name="${colorVar.name}">${colorVar.value}</color>\n`;
+  }
+  
+  // Add dimension resources
+  for (const dimenVar of dimenVars) {
+    if (includeComments) {
+      dimenOutput += `    <!-- ${dimenVar.original} -->\n`;
+    }
+    dimenOutput += `    <dimen name="${dimenVar.name}">${dimenVar.value}</dimen>\n`;
+  }
+  
+  colorOutput += '</resources>\n';
+  dimenOutput += '</resources>\n';
+  
+  return {
+    format: 'android',
+    colorResource: colorOutput,
+    dimenResource: dimenOutput,
+    variableCount: colorVars.length + dimenVars.length
+  };
+}
+
+// Helper function to convert variables to iOS format (Swift)
+function convertToIos(variables, options) {
+  const { prefix, nameFormat, includeComments, groupByCategory } = options;
+  
+  let swiftOutput = 'import UIKit\n\n';
+  swiftOutput += 'struct DesignTokens {\n';
+  
+  // Group variables by category if requested
+  if (groupByCategory) {
+    // Group by extracting category from variable name (before first slash or separator)
+    const grouped = {};
+    
+    for (const variable of variables) {
+      // Extract category from name
+      const category = variable.name.split(/[\/\s-_]/)[0];
+      
+      if (!grouped[category]) {
+        grouped[category] = [];
+      }
+      
+      grouped[category].push(variable);
+    }
+    
+    // Process each group
+    for (const [category, vars] of Object.entries(grouped)) {
+      const categoryName = category.charAt(0).toUpperCase() + category.slice(1);
+      
+      if (includeComments) {
+        swiftOutput += `    // ${category.toUpperCase()}\n`;
+      }
+      
+      swiftOutput += `    struct ${categoryName} {\n`;
+      
+      for (const variable of vars) {
+        const propName = formatVariableName(variable.name.replace(category, '').replace(/^[\/\s-_]+/, ''), 'camelCase');
+        
+        // Include a comment with the original variable name if requested
+        if (includeComments) {
+          swiftOutput += `        // ${variable.name} (${variable.type})\n`;
+        }
+        
+        // Get the value from the first mode
+        const modeId = Object.keys(variable.valuesByMode)[0];
+        let value = variable.valuesByMode[modeId];
+        
+        // Format value based on variable type
+        if (variable.type === 'COLOR') {
+          // Convert color to iOS Swift format
+          const colorValue = getCssColorValue(value);
+          
+          if (colorValue.startsWith('#')) {
+            // Parse hex color
+            let hex = colorValue.substring(1);
+            let alpha = 1.0;
+            let r, g, b;
+            
+            if (hex.length === 8) {
+              // #RRGGBBAA format
+              r = parseInt(hex.substring(0, 2), 16) / 255;
+              g = parseInt(hex.substring(2, 4), 16) / 255;
+              b = parseInt(hex.substring(4, 6), 16) / 255;
+              alpha = parseInt(hex.substring(6, 8), 16) / 255;
+            } else {
+              // #RRGGBB format
+              r = parseInt(hex.substring(0, 2), 16) / 255;
+              g = parseInt(hex.substring(2, 4), 16) / 255;
+              b = parseInt(hex.substring(4, 6), 16) / 255;
+            }
+            
+            swiftOutput += `        static let ${propName} = UIColor(red: ${r.toFixed(3)}, green: ${g.toFixed(3)}, blue: ${b.toFixed(3)}, alpha: ${alpha.toFixed(3)})\n`;
+          } else if (colorValue.startsWith('rgba')) {
+            // Parse rgba color
+            const matches = colorValue.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
+            if (matches) {
+              const r = parseInt(matches[1]) / 255;
+              const g = parseInt(matches[2]) / 255;
+              const b = parseInt(matches[3]) / 255;
+              const a = parseFloat(matches[4]);
+              
+              swiftOutput += `        static let ${propName} = UIColor(red: ${r.toFixed(3)}, green: ${g.toFixed(3)}, blue: ${b.toFixed(3)}, alpha: ${a.toFixed(3)})\n`;
+            }
+          } else {
+            // Use named colors or other formats
+            swiftOutput += `        static let ${propName} = UIColor(named: "${propName}")!\n`;
+          }
+        } else if (variable.type === 'FLOAT') {
+          swiftOutput += `        static let ${propName}: CGFloat = ${value}\n`;
+        } else {
+          swiftOutput += `        static let ${propName} = "${value}"\n`;
+        }
+      }
+      
+      swiftOutput += `    }\n\n`;
+    }
+  } else {
+    // No grouping, flat structure
+    for (const variable of variables) {
+      const propName = formatVariableName(variable.name, 'camelCase', prefix);
+      
+      // Include a comment with the original variable name if requested
+      if (includeComments) {
+        swiftOutput += `    // ${variable.name} (${variable.type})\n`;
+      }
+      
+      // Get the value from the first mode
+      const modeId = Object.keys(variable.valuesByMode)[0];
+      let value = variable.valuesByMode[modeId];
+      
+      // Format value based on variable type
+      if (variable.type === 'COLOR') {
+        // Convert color to iOS Swift format
+        const colorValue = getCssColorValue(value);
+        
+        if (colorValue.startsWith('#')) {
+          // Parse hex color
+          let hex = colorValue.substring(1);
+          let alpha = 1.0;
+          let r, g, b;
+          
+          if (hex.length === 8) {
+            // #RRGGBBAA format
+            r = parseInt(hex.substring(0, 2), 16) / 255;
+            g = parseInt(hex.substring(2, 4), 16) / 255;
+            b = parseInt(hex.substring(4, 6), 16) / 255;
+            alpha = parseInt(hex.substring(6, 8), 16) / 255;
+          } else {
+            // #RRGGBB format
+            r = parseInt(hex.substring(0, 2), 16) / 255;
+            g = parseInt(hex.substring(2, 4), 16) / 255;
+            b = parseInt(hex.substring(4, 6), 16) / 255;
+          }
+          
+          swiftOutput += `    static let ${propName} = UIColor(red: ${r.toFixed(3)}, green: ${g.toFixed(3)}, blue: ${b.toFixed(3)}, alpha: ${alpha.toFixed(3)})\n`;
+        } else if (colorValue.startsWith('rgba')) {
+          // Parse rgba color
+          const matches = colorValue.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
+          if (matches) {
+            const r = parseInt(matches[1]) / 255;
+            const g = parseInt(matches[2]) / 255;
+            const b = parseInt(matches[3]) / 255;
+            const a = parseFloat(matches[4]);
+            
+            swiftOutput += `    static let ${propName} = UIColor(red: ${r.toFixed(3)}, green: ${g.toFixed(3)}, blue: ${b.toFixed(3)}, alpha: ${a.toFixed(3)})\n`;
+          }
+        } else {
+          // Use named colors or other formats
+          swiftOutput += `    static let ${propName} = UIColor(named: "${propName}")!\n`;
+        }
+      } else if (variable.type === 'FLOAT') {
+        swiftOutput += `    static let ${propName}: CGFloat = ${value}\n`;
+      } else {
+        swiftOutput += `    static let ${propName} = "${value}"\n`;
+      }
+    }
+  }
+  
+  swiftOutput += '}\n';
+  
+  return {
+    format: 'ios',
+    code: swiftOutput,
+    variableCount: variables.length
+  };
+}
+
+// Helper functions for importing from other formats
+
+// Process JSON design tokens
+function processJsonTokens(tokens) {
+  const variables = [];
+  
+  // Recursively process the token structure
+  function extractVariables(obj, prefix = '') {
+    for (const [key, value] of Object.entries(obj)) {
+      // Check if the value is an object (nested structure)
+      if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+        // Check if it's a value with metadata
+        if (value.value !== undefined) {
+          const variable = {
+            name: prefix ? `${prefix}/${key}` : key,
+            type: inferType(value.value),
+            valuesByMode: { 'default': value.value }
+          };
+          
+          variables.push(variable);
+        } else {
+          // Nested object, recurse
+          extractVariables(value, prefix ? `${prefix}/${key}` : key);
+        }
+      } else {
+        // Leaf value
+        const variable = {
+          name: prefix ? `${prefix}/${key}` : key,
+          type: inferType(value),
+          valuesByMode: { 'default': value }
+        };
+        
+        variables.push(variable);
+      }
+    }
+  }
+  
+  extractVariables(tokens);
+  return variables;
+}
+
+// Process CSS variables
+function processCssTokens(tokensStr) {
+  const variables = [];
+  
+  // Extract CSS variables
+  const regex = /--([\w-]+)\s*:\s*([^;]+);/g;
+  let match;
+  
+  while ((match = regex.exec(tokensStr)) !== null) {
+    const name = match[1];
+    const value = match[2].trim();
+    
+    const variable = {
+      name,
+      type: inferType(value),
+      valuesByMode: { 'default': convertCssValue(value) }
+    };
+    
+    variables.push(variable);
+  }
+  
+  return variables;
+}
+
+// Process SCSS variables
+function processScssTokens(tokensStr) {
+  const variables = [];
+  
+  // Extract SCSS variables
+  const regex = /\$([\w-]+)\s*:\s*([^;]+);/g;
+  let match;
+  
+  while ((match = regex.exec(tokensStr)) !== null) {
+    const name = match[1];
+    const value = match[2].trim();
+    
+    const variable = {
+      name,
+      type: inferType(value),
+      valuesByMode: { 'default': convertCssValue(value) }
+    };
+    
+    variables.push(variable);
+  }
+  
+  return variables;
+}
+
+// Process JavaScript tokens
+function processJsTokens(tokensObj) {
+  const variables = [];
+  
+  // Extract variables from JS object
+  function extractJsVariables(obj, prefix = '') {
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+        // Nested object
+        extractJsVariables(value, prefix ? `${prefix}/${key}` : key);
+      } else {
+        // Leaf value
+        const variable = {
+          name: prefix ? `${prefix}/${key}` : key,
+          type: inferType(value),
+          valuesByMode: { 'default': value }
+        };
+        
+        variables.push(variable);
+      }
+    }
+  }
+  
+  extractJsVariables(tokensObj);
+  return variables;
+}
+
+// Process Tailwind config
+function processTailwindTokens(config) {
+  const variables = [];
+  
+  // Extract theme values
+  if (config && config.theme && config.theme.extend) {
+    const { colors, spacing, fontSize, borderRadius, ...rest } = config.theme.extend;
+    
+    // Process colors
+    if (colors) {
+      for (const [key, value] of Object.entries(colors)) {
+        if (typeof value === 'string') {
+          variables.push({
+            name: `color/${key}`,
+            type: 'COLOR',
+            valuesByMode: { 'default': convertCssValue(value) }
+          });
+        } else if (typeof value === 'object') {
+          // Color with shades
+          for (const [shade, shadeValue] of Object.entries(value)) {
+            variables.push({
+              name: `color/${key}/${shade}`,
+              type: 'COLOR',
+              valuesByMode: { 'default': convertCssValue(shadeValue) }
+            });
+          }
+        }
+      }
+    }
+    
+    // Process spacing
+    if (spacing) {
+      for (const [key, value] of Object.entries(spacing)) {
+        variables.push({
+          name: `spacing/${key}`,
+          type: 'FLOAT',
+          valuesByMode: { 'default': convertCssValue(value) }
+        });
+      }
+    }
+    
+    // Process fontSize
+    if (fontSize) {
+      for (const [key, value] of Object.entries(fontSize)) {
+        variables.push({
+          name: `fontSize/${key}`,
+          type: 'FLOAT',
+          valuesByMode: { 'default': convertCssValue(value) }
+        });
+      }
+    }
+    
+    // Process borderRadius
+    if (borderRadius) {
+      for (const [key, value] of Object.entries(borderRadius)) {
+        variables.push({
+          name: `borderRadius/${key}`,
+          type: 'FLOAT',
+          valuesByMode: { 'default': convertCssValue(value) }
+        });
+      }
+    }
+    
+    // Process other properties
+    for (const [category, values] of Object.entries(rest)) {
+      for (const [key, value] of Object.entries(values)) {
+        variables.push({
+          name: `${category}/${key}`,
+          type: inferType(value),
+          valuesByMode: { 'default': convertCssValue(value) }
+        });
+      }
+    }
+  }
+  
+  return variables;
+}
+
+// Process Android resource format
+function processAndroidTokens(xml) {
+  const variables = [];
+  
+  // Extract color resources
+  const colorRegex = /<color name="([^"]+)">([^<]+)<\/color>/g;
+  let colorMatch;
+  
+  while ((colorMatch = colorRegex.exec(xml)) !== null) {
+    const name = colorMatch[1];
+    const value = colorMatch[2].trim();
+    
+    variables.push({
+      name: `color/${name}`,
+      type: 'COLOR',
+      valuesByMode: { 'default': convertAndroidColor(value) }
+    });
+  }
+  
+  // Extract dimension resources
+  const dimenRegex = /<dimen name="([^"]+)">([^<]+)<\/dimen>/g;
+  let dimenMatch;
+  
+  while ((dimenMatch = dimenRegex.exec(xml)) !== null) {
+    const name = dimenMatch[1];
+    const value = dimenMatch[2].trim();
+    
+    variables.push({
+      name: `spacing/${name}`,
+      type: 'FLOAT',
+      valuesByMode: { 'default': convertAndroidDimen(value) }
+    });
+  }
+  
+  return variables;
+}
+
+// Process iOS Swift format
+function processIosTokens(swift) {
+  const variables = [];
+  
+  // Extract UIColor definitions
+  const colorRegex = /static let (\w+) = UIColor\(red: ([\d.]+), green: ([\d.]+), blue: ([\d.]+), alpha: ([\d.]+)\)/g;
+  let colorMatch;
+  
+  while ((colorMatch = colorRegex.exec(swift)) !== null) {
+    const name = colorMatch[1];
+    const r = parseFloat(colorMatch[2]);
+    const g = parseFloat(colorMatch[3]);
+    const b = parseFloat(colorMatch[4]);
+    const a = parseFloat(colorMatch[5]);
+    
+    variables.push({
+      name: `color/${name}`,
+      type: 'COLOR',
+      valuesByMode: { 
+        'default': { 
+          r: r, 
+          g: g, 
+          b: b, 
+          a: a 
+        } 
+      }
+    });
+  }
+  
+  // Extract CGFloat constants
+  const floatRegex = /static let (\w+): CGFloat = ([\d.]+)/g;
+  let floatMatch;
+  
+  while ((floatMatch = floatRegex.exec(swift)) !== null) {
+    const name = floatMatch[1];
+    const value = parseFloat(floatMatch[2]);
+    
+    variables.push({
+      name: `spacing/${name}`,
+      type: 'FLOAT',
+      valuesByMode: { 'default': value }
+    });
+  }
+  
+  // Extract string constants
+  const stringRegex = /static let (\w+) = "([^"]*)"/g;
+  let stringMatch;
+  
+  while ((stringMatch = stringRegex.exec(swift)) !== null) {
+    const name = stringMatch[1];
+    const value = stringMatch[2];
+    
+    // Skip if it's a color name
+    if (!swift.includes(`UIColor(named: "${name}")`)) {
+      variables.push({
+        name: `string/${name}`,
+        type: 'STRING',
+        valuesByMode: { 'default': value }
+      });
+    }
+  }
+  
+  return variables;
+}
+
+// Import tokens to Figma variables
+async function importTokensToFigma(variables, options) {
+  const { prefix, nameFormat } = options;
+  
+  try {
+    // Create collections for different token types
+    const collections = {};
+    const collectionNames = ['Colors', 'Spacing', 'Typography', 'Other'];
+    
+    // Create collections if they don't exist
+    for (const name of collectionNames) {
+      const existingCollections = figma.variables.getLocalVariableCollections();
+      const existing = existingCollections.find(c => c.name === name);
+      
+      if (existing) {
+        collections[name] = existing;
+      } else {
+        const collection = figma.variables.createVariableCollection(name);
+        collections[name] = collection;
+      }
+    }
+    
+    // Process variables and create Figma variables
+    const results = [];
+    
+    for (const variable of variables) {
+      try {
+        // Format the variable name
+        const varName = formatVariableName(variable.name, nameFormat, prefix);
+        
+        // Determine which collection to use based on the variable type or name
+        let collectionKey = 'Other';
+        
+        if (variable.type === 'COLOR') {
+          collectionKey = 'Colors';
+        } else if (variable.name.includes('spacing') || variable.name.includes('size') || 
+                   variable.name.includes('margin') || variable.name.includes('padding')) {
+          collectionKey = 'Spacing';
+        } else if (variable.name.includes('font') || variable.name.includes('text')) {
+          collectionKey = 'Typography';
+        }
+        
+        const collection = collections[collectionKey];
+        
+        // Determine the variable type
+        let figmaType;
+        switch (variable.type) {
+          case 'COLOR':
+            figmaType = 'COLOR';
+            break;
+          case 'FLOAT':
+          case 'NUMBER':
+            figmaType = 'FLOAT';
+            break;
+          case 'STRING':
+            figmaType = 'STRING';
+            break;
+          case 'BOOLEAN':
+            figmaType = 'BOOLEAN';
+            break;
+          default:
+            figmaType = 'STRING'; // Default to string for unknown types
+        }
+        
+        // Create the variable
+        const figmaVar = figma.variables.createVariable(varName, collection, figmaType);
+        
+        // Set the initial value
+        const value = variable.valuesByMode.default;
+        figmaVar.setValueForMode(collection.defaultModeId, value);
+        
+        results.push({
+          id: figmaVar.id,
+          name: figmaVar.name,
+          type: figmaVar.resolvedType,
+          collection: collectionKey
+        });
+      } catch (error) {
+        console.error(`Failed to create variable for ${variable.name}:`, error);
+      }
+    }
+    
+    return {
+      success: true,
+      variables: results,
+      collectionIds: Object.fromEntries(
+        Object.entries(collections).map(([name, collection]) => [name, collection.id])
+      )
+    };
+  } catch (error) {
+    throw new Error(`Failed to import tokens to Figma: ${error.message}`);
+  }
+}
+
+// Helper utilities
+
+// Infer variable type from value
+function inferType(value) {
+  if (value === null || value === undefined) {
+    return 'STRING';
+  }
+  
+  if (typeof value === 'string') {
+    // Check if it's a color value
+    if (value.startsWith('#') || value.startsWith('rgb') || 
+        value.startsWith('hsl') || CSS_COLOR_NAMES.includes(value.toLowerCase())) {
+      return 'COLOR';
+    }
+    
+    // Check if it's a number with a unit
+    if (/^[\d.]+(?:px|rem|em|%|vh|vw|vmin|vmax|pt|pc|in|cm|mm|ex|ch)$/.test(value)) {
+      return 'FLOAT';
+    }
+    
+    return 'STRING';
+  }
+  
+  if (typeof value === 'number') {
+    return 'FLOAT';
+  }
+  
+  if (typeof value === 'boolean') {
+    return 'BOOLEAN';
+  }
+  
+  return 'STRING';
+}
+
+// Convert CSS color value to Figma color object
+function convertCssValue(value) {
+  if (typeof value !== 'string') {
+    return value;
+  }
+  
+  // Handle colors
+  if (value.startsWith('#')) {
+    return hexToRgb(value);
+  } else if (value.startsWith('rgb')) {
+    return rgbStringToRgb(value);
+  }
+  
+  // Handle dimensions
+  const match = value.match(/^([\d.]+)(px|rem|em|%|vh|vw|vmin|vmax|pt|pc|in|cm|mm|ex|ch)$/);
+  if (match) {
+    // Convert to pixels (approximate)
+    let num = parseFloat(match[1]);
+    const unit = match[2];
+    
+    // This is a simplification, as accurate conversion would require context
+    if (unit === 'rem' || unit === 'em') {
+      // Assume 1rem = 16px
+      num *= 16;
+    }
+    
+    return num;
+  }
+  
+  return value;
+}
+
+// Convert hex color to RGB object
+function hexToRgb(hex) {
+  // Remove # if present
+  hex = hex.replace(/^#/, '');
+  
+  // Parse hex values
+  let r, g, b, a = 1;
+  
+  if (hex.length === 3) {
+    // #RGB format
+    r = parseInt(hex.charAt(0) + hex.charAt(0), 16) / 255;
+    g = parseInt(hex.charAt(1) + hex.charAt(1), 16) / 255;
+    b = parseInt(hex.charAt(2) + hex.charAt(2), 16) / 255;
+  } else if (hex.length === 6) {
+    // #RRGGBB format
+    r = parseInt(hex.substring(0, 2), 16) / 255;
+    g = parseInt(hex.substring(2, 4), 16) / 255;
+    b = parseInt(hex.substring(4, 6), 16) / 255;
+  } else if (hex.length === 8) {
+    // #RRGGBBAA format
+    r = parseInt(hex.substring(0, 2), 16) / 255;
+    g = parseInt(hex.substring(2, 4), 16) / 255;
+    b = parseInt(hex.substring(4, 6), 16) / 255;
+    a = parseInt(hex.substring(6, 8), 16) / 255;
+  }
+  
+  return { r, g, b, a };
+}
+
+// Convert RGB string to RGB object
+function rgbStringToRgb(rgbStr) {
+  const rgbaMatch = rgbStr.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\s*\)/);
+  
+  if (rgbaMatch) {
+    const r = parseInt(rgbaMatch[1]) / 255;
+    const g = parseInt(rgbaMatch[2]) / 255;
+    const b = parseInt(rgbaMatch[3]) / 255;
+    const a = rgbaMatch[4] ? parseFloat(rgbaMatch[4]) : 1;
+    
+    return { r, g, b, a };
+  }
+  
+  return { r: 0, g: 0, b: 0, a: 1 }; // Default black color
+}
+
+// Convert Android color format to Figma color object
+function convertAndroidColor(color) {
+  // Remove # if present
+  if (color.startsWith('#')) {
+    return hexToRgb(color);
+  }
+  
+  // Handle named colors
+  if (CSS_COLOR_NAMES.includes(color.toLowerCase())) {
+    // Create a temporary element to get RGB values
+    // For Figma, we would need a mapping or approximation
+    return { r: 0, g: 0, b: 0, a: 1 }; // Default for now
+  }
+  
+  return { r: 0, g: 0, b: 0, a: 1 }; // Default black color
+}
+
+// Convert Android dimension value to number
+function convertAndroidDimen(dimen) {
+  const match = dimen.match(/([\d.]+)(dp|sp|px)/);
+  
+  if (match) {
+    return parseFloat(match[1]);
+  }
+  
+  return 0; // Default value
+}
+
+// List of CSS color names for type inference
+const CSS_COLOR_NAMES = [
+  'aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure', 'beige', 'bisque', 'black',
+  'blanchedalmond', 'blue', 'blueviolet', 'brown', 'burlywood', 'cadetblue', 'chartreuse',
+  'chocolate', 'coral', 'cornflowerblue', 'cornsilk', 'crimson', 'cyan', 'darkblue', 'darkcyan',
+  'darkgoldenrod', 'darkgray', 'darkgreen', 'darkkhaki', 'darkmagenta', 'darkolivegreen',
+  'darkorange', 'darkorchid', 'darkred', 'darksalmon', 'darkseagreen', 'darkslateblue',
+  'darkslategray', 'darkturquoise', 'darkviolet', 'deeppink', 'deepskyblue', 'dimgray',
+  'dodgerblue', 'firebrick', 'floralwhite', 'forestgreen', 'fuchsia', 'gainsboro', 'ghostwhite',
+  'gold', 'goldenrod', 'gray', 'green', 'greenyellow', 'honeydew', 'hotpink', 'indianred',
+  'indigo', 'ivory', 'khaki', 'lavender', 'lavenderblush', 'lawngreen', 'lemonchiffon',
+  'lightblue', 'lightcoral', 'lightcyan', 'lightgoldenrodyellow', 'lightgray', 'lightgreen',
+  'lightpink', 'lightsalmon', 'lightseagreen', 'lightskyblue', 'lightslategray',
+  'lightsteelblue', 'lightyellow', 'lime', 'limegreen', 'linen', 'magenta', 'maroon',
+  'mediumaquamarine', 'mediumblue', 'mediumorchid', 'mediumpurple', 'mediumseagreen',
+  'mediumslateblue', 'mediumspringgreen', 'mediumturquoise', 'mediumvioletred', 'midnightblue',
+  'mintcream', 'mistyrose', 'moccasin', 'navajowhite', 'navy', 'oldlace', 'olive', 'olivedrab',
+  'orange', 'orangered', 'orchid', 'palegoldenrod', 'palegreen', 'paleturquoise',
+  'palevioletred', 'papayawhip', 'peachpuff', 'peru', 'pink', 'plum', 'powderblue', 'purple',
+  'rebeccapurple', 'red', 'rosybrown', 'royalblue', 'saddlebrown', 'salmon', 'sandybrown',
+  'seagreen', 'seashell', 'sienna', 'silver', 'skyblue', 'slateblue', 'slategray', 'snow',
+  'springgreen', 'steelblue', 'tan', 'teal', 'thistle', 'tomato', 'turquoise', 'violet', 'wheat',
+  'white', 'whitesmoke', 'yellow', 'yellowgreen'
+];
 
 // Import component from library
 async function importComponentFromLibrary(params) {

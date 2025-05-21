@@ -1,6 +1,13 @@
 // Enhanced tools to fix the issues identified
 // This file contains fixes and improvements to the existing tools
 
+// Function to initialize the tools with MCP server functions
+let sendFigmaCommand;
+let getActiveChannelId;
+let setActiveChannelId;
+let getWebSocketClient;
+const WebSocket = require('ws');
+
 // Fix for color variable issues - helper function to properly format colors
 function formatColorForFigma(color) {
   // Ensure we have r, g, b values between 0 and 1
@@ -254,12 +261,78 @@ const create_multiple_instances = {
   }
 };
 
-// Export the enhanced tools
-module.exports = {
-  enhanced_create_component_instance,
-  enhanced_set_fill_color,
-  enhanced_create_variable,
-  create_multiple_instances,
-  create_component_instance_safe,
-  formatColorForFigma
+// Design Token Converter
+const convert_design_tokens = {
+  description: 'Convert design tokens between formats (Figma variables ↔ standard design token formats)',
+  parameters: {
+    type: 'object',
+    properties: {
+      source: {
+        type: 'string',
+        enum: ['figma', 'json', 'css', 'scss', 'js', 'tailwind', 'android', 'ios'],
+        description: 'Source format of the tokens',
+        default: 'figma'
+      },
+      target: {
+        type: 'string',
+        enum: ['css', 'scss', 'js', 'json', 'tailwind', 'android', 'ios', 'figma'],
+        description: 'Target format to convert to'
+      },
+      collectionId: {
+        type: 'string',
+        description: 'ID of the variable collection (only needed when source is "figma")'
+      },
+      tokens: {
+        type: 'string',
+        description: 'Token data in JSON format (only needed when source is not "figma")'
+      },
+      prefix: {
+        type: 'string',
+        description: 'Prefix to add to all variable names',
+        default: ''
+      },
+      nameFormat: {
+        type: 'string',
+        enum: ['kebab-case', 'camelCase', 'PascalCase', 'snake_case'],
+        description: 'Format to use for variable names',
+        default: 'kebab-case'
+      },
+      includeComments: {
+        type: 'boolean',
+        description: 'Whether to include comments in the output',
+        default: true
+      },
+      groupByCategory: {
+        type: 'boolean',
+        description: 'Whether to group variables by category in the output',
+        default: true
+      }
+    },
+    required: ['target']
+  },
+  handler: async (params) => {
+    return await sendFigmaCommand('convert_design_tokens', params);
+  }
 };
+
+// Collection of enhanced tools
+const enhancedTools = {
+  // Enhanced versions of existing tools
+  create_component_instance: enhanced_create_component_instance,
+  set_fill_color: enhanced_set_fill_color,
+  create_variable: enhanced_create_variable,
+  create_multiple_instances,
+  
+  // New tools
+  convert_design_tokens
+};
+
+// Function to initialize the tools with MCP server functions
+function initializeEnhancedTools(mcpServer) {
+  sendFigmaCommand = mcpServer.sendFigmaCommand;
+  getActiveChannelId = mcpServer.getActiveChannelId;
+  setActiveChannelId = mcpServer.setActiveChannelId;
+  getWebSocketClient = mcpServer.getWebSocketClient;
+}
+
+module.exports = { enhancedTools, initializeEnhancedTools, formatColorForFigma, create_component_instance_safe };

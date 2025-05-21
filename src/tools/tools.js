@@ -329,6 +329,219 @@ const tools = {
     }
   },
   
+  create_frame_with_auto_layout: {
+    description: 'Create a new frame with auto layout properties',
+    parameters: {
+      type: 'object',
+      properties: {
+        x: {
+          type: 'number',
+          description: 'The x position of the frame'
+        },
+        y: {
+          type: 'number',
+          description: 'The y position of the frame'
+        },
+        width: {
+          type: 'number',
+          description: 'The width of the frame'
+        },
+        height: {
+          type: 'number',
+          description: 'The height of the frame'
+        },
+        name: {
+          type: 'string',
+          description: 'Optional name for the frame'
+        },
+        parentId: {
+          type: 'string',
+          description: 'Optional parent node ID'
+        },
+        layoutMode: {
+          type: 'string',
+          enum: ['HORIZONTAL', 'VERTICAL'],
+          description: 'Direction of auto layout (horizontal or vertical)'
+        },
+        itemSpacing: {
+          type: 'number',
+          description: 'Space between child elements',
+          default: 0
+        },
+        padding: {
+          type: ['number', 'object'],
+          description: 'Frame padding (uniform number or {top, right, bottom, left} object)',
+          default: 0
+        },
+        primaryAxisAlignItems: {
+          type: 'string',
+          enum: ['MIN', 'CENTER', 'MAX', 'SPACE_BETWEEN'],
+          description: 'Alignment of items along the primary axis',
+          default: 'MIN'
+        },
+        counterAxisAlignItems: {
+          type: 'string',
+          enum: ['MIN', 'CENTER', 'MAX', 'BASELINE'],
+          description: 'Alignment of items along the counter axis',
+          default: 'MIN'
+        }
+      },
+      required: ['x', 'y', 'width', 'height', 'layoutMode']
+    },
+    handler: async (params) => {
+      return await sendFigmaCommand('create_frame_with_auto_layout', params);
+    }
+  },
+  
+  modify_auto_layout: {
+    description: 'Modify auto layout properties of an existing frame or component',
+    parameters: {
+      type: 'object',
+      properties: {
+        nodeId: {
+          type: 'string',
+          description: 'ID of the node to modify'
+        },
+        layoutMode: {
+          type: ['string', 'null'],
+          enum: ['HORIZONTAL', 'VERTICAL', null],
+          description: 'Direction of auto layout or null to remove auto layout'
+        },
+        itemSpacing: {
+          type: 'number',
+          description: 'Space between child elements'
+        },
+        padding: {
+          type: ['number', 'object'],
+          description: 'Frame padding (uniform number or {top, right, bottom, left} object)'
+        },
+        primaryAxisAlignItems: {
+          type: 'string',
+          enum: ['MIN', 'CENTER', 'MAX', 'SPACE_BETWEEN'],
+          description: 'Alignment of items along the primary axis'
+        },
+        counterAxisAlignItems: {
+          type: 'string',
+          enum: ['MIN', 'CENTER', 'MAX', 'BASELINE'],
+          description: 'Alignment of items along the counter axis'
+        },
+        primaryAxisSizingMode: {
+          type: 'string',
+          enum: ['FIXED', 'AUTO', 'HUG'],
+          description: 'Sizing mode for the primary axis'
+        },
+        counterAxisSizingMode: {
+          type: 'string',
+          enum: ['FIXED', 'AUTO', 'HUG'],
+          description: 'Sizing mode for the counter axis'
+        }
+      },
+      required: ['nodeId']
+    },
+    handler: async (params) => {
+      return await sendFigmaCommand('modify_auto_layout', params);
+    }
+  },
+  
+  toggle_auto_layout_direction: {
+    description: 'Toggle auto layout direction between horizontal and vertical',
+    parameters: {
+      type: 'object',
+      properties: {
+        nodeId: {
+          type: 'string',
+          description: 'ID of the node with auto layout to toggle'
+        }
+      },
+      required: ['nodeId']
+    },
+    handler: async ({ nodeId }) => {
+      return await sendFigmaCommand('toggle_auto_layout_direction', { nodeId });
+    }
+  },
+  
+  apply_auto_layout_to_selection: {
+    description: 'Apply auto layout to selected elements',
+    parameters: {
+      type: 'object',
+      properties: {
+        layoutMode: {
+          type: 'string',
+          enum: ['HORIZONTAL', 'VERTICAL'],
+          description: 'Direction of auto layout',
+          default: 'VERTICAL'
+        },
+        itemSpacing: {
+          type: 'number',
+          description: 'Space between child elements',
+          default: 10
+        },
+        padding: {
+          type: ['number', 'object'],
+          description: 'Frame padding (uniform number or {top, right, bottom, left} object)',
+          default: 0
+        },
+        primaryAxisAlignItems: {
+          type: 'string',
+          enum: ['MIN', 'CENTER', 'MAX', 'SPACE_BETWEEN'],
+          description: 'Alignment of items along the primary axis',
+          default: 'MIN'
+        },
+        counterAxisAlignItems: {
+          type: 'string',
+          enum: ['MIN', 'CENTER', 'MAX', 'BASELINE'],
+          description: 'Alignment of items along the counter axis',
+          default: 'MIN'
+        },
+        wrapInNewFrame: {
+          type: 'boolean',
+          description: 'Whether to create a new frame containing the selected elements',
+          default: false
+        },
+        frameName: {
+          type: 'string',
+          description: 'Name for the new frame if wrapInNewFrame is true',
+          default: 'Auto Layout Frame'
+        }
+      }
+    },
+    handler: async (params) => {
+      return await sendFigmaCommand('apply_auto_layout_to_selection', params);
+    }
+  },
+  
+  set_auto_layout_sizing: {
+    description: 'Set the sizing modes for an auto layout frame',
+    parameters: {
+      type: 'object',
+      properties: {
+        nodeId: {
+          type: 'string',
+          description: 'ID of the node with auto layout to modify'
+        },
+        primaryAxisSizingMode: {
+          type: 'string',
+          enum: ['FIXED', 'AUTO', 'HUG'],
+          description: 'Sizing mode for the primary axis'
+        },
+        counterAxisSizingMode: {
+          type: 'string',
+          enum: ['FIXED', 'AUTO', 'HUG'],
+          description: 'Sizing mode for the counter axis'
+        },
+        resizeChildren: {
+          type: 'boolean',
+          description: 'Whether to apply child constraints based on new sizing modes',
+          default: false
+        }
+      },
+      required: ['nodeId']
+    },
+    handler: async (params) => {
+      return await sendFigmaCommand('set_auto_layout_sizing', params);
+    }
+  },
+  
   create_text: {
     description: 'Create a new text node with customizable font properties',
     parameters: {

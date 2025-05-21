@@ -1,0 +1,125 @@
+{"type":"entity","name":"TalkToFigmaClaude","entityType":"Project","observations":["Main project with Claude integration for Figma","Allows communication between Claude and Figma via MCP (Message Control Protocol)"]}
+{"type":"entity","name":"FigmaPlugin","entityType":"Component","observations":["The main Figma plugin interface","Connects to websocket server and handles Figma API interactions","Uses UI HTML for the plugin interface"]}
+{"type":"entity","name":"MCP_Server","entityType":"Component","observations":["Message Control Protocol server","Manages communication between Claude and Figma","Provides tools and commands to interact with Figma"]}
+{"type":"entity","name":"Claude_Bridge","entityType":"Component","observations":["Bridges communication between Claude and the MCP server","Uses HTTP and WebSocket connections","Handles message formatting and error handling"]}
+{"type":"entity","name":"Figma_Bridge","entityType":"Component","observations":["Provides high-level abstractions for working with Figma","Handles command sending and response parsing","Creates UI components and layouts"]}
+{"type":"entity","name":"Auto_Layout_Controls","entityType":"Feature","observations":["Creates frames with auto layout properties","Modifies existing auto layout properties","Toggles auto layout direction between horizontal and vertical","Can create frame with auto layout properties","Supports applying auto layout to current selection","Already implemented in the codebase"]}
+{"type":"entity","name":"Component_Management","entityType":"Feature","observations":["Creates and manages Figma components","Includes component library browser","Creates component instances","Gets information about local components","Creates component sets (variants)","Already implemented in the codebase"]}
+{"type":"entity","name":"Text_Manipulation","entityType":"Feature","observations":["Creates text nodes with customizable properties","Scans and modifies text nodes","Sets text content for single or multiple nodes","Includes text formatting capabilities","Already implemented in the codebase"]}
+{"type":"entity","name":"Shape_Creation","entityType":"Feature","observations":["Creates basic shapes like rectangles","Sets fill colors and corner radius","Sets stroke properties","Sets effects like shadows and blurs","Already implemented in the codebase"]}
+{"type":"entity","name":"Image_Handling","entityType":"Feature","observations":["Creates images from URLs","Sets image fills on nodes","Exports nodes as images in various formats","Already implemented in the codebase"]}
+{"type":"entity","name":"Node_Management","entityType":"Feature","observations":["Gets information about nodes","Deletes nodes from the document","Gets document and selection information","Gets detailed node hierarchy information","Already implemented in the codebase"]}
+{"type":"entity","name":"Design_Token_Management","entityType":"Feature","observations":["Creates and manages variable collections","Creates variables (design tokens)","Sets variable values for specific modes","Imports and exports variables as JSON","Already implemented in the codebase"]}
+{"type":"entity","name":"Design_Strategy","entityType":"Feature","observations":["Provides best practices for working with Figma designs","Offers reading strategies for Figma designs","Includes text replacement strategies","Provides annotation conversion strategies","Already implemented in the codebase"]}
+{"type":"entity","name":"Alignment_Distribution","entityType":"Feature","observations":["Not directly identified in the codebase","Likely implemented as part of the auto layout functionality","Described as a high priority, low complexity feature in the implementation plan","Implemented with alignElements and distributeElements functions","Supports various alignment options: LEFT, RIGHT, CENTER, TOP, MIDDLE, BOTTOM","Supports distribution in HORIZONTAL and VERTICAL directions","Can work with current selection or specific node IDs","Can align to selection bounds or a custom bounding box"]}
+{"type":"entity","name":"Grid_Layout_Generator","entityType":"Feature","observations":["Partially implemented in the Figma Bridge as createLayout function with 'grid' type","Creates a grid layout with auto-layout and wrapping","Described as a medium priority, medium complexity feature in the implementation plan","Implemented with createGridLayout function","Supports configurable rows, columns, and spacing","Can use auto layout for responsive grids","Supports named grid areas similar to CSS grid-template-areas","Can generate placeholder content in grid cells"]}
+{"type":"entity","name":"Component_Property_Batch_Editor","entityType":"Feature","observations":["Partially implemented with functions to add component properties and update instance properties","Described as a high priority, medium complexity feature in the implementation plan","Implemented with batchEditComponentProperties function","Supports updating multiple instances at once","Can filter which properties to update by name or type","Supports property presets that can be applied across multiple instances","Can apply updates to the current selection"]}
+{"type":"entity","name":"Enhanced_Component_Library_Browser","entityType":"Feature","observations":["High priority, medium complexity feature","Extends existing component library browser","Improved browsing and search capabilities","Partially implemented with getEnhancedComponentLibrary function"]}
+{"type":"entity","name":"Design_Token_Converter","entityType":"Feature","observations":["High priority, medium complexity feature","To be implemented in Phase 2","Builds on existing variable export/import functionality","Tool for converting design tokens between formats"]}
+{"type":"entity","name":"Style_Auditing","entityType":"Feature","observations":["Medium priority, medium complexity feature","To be implemented in Phase 2","Analyzes styles across a design file","Identifies inconsistencies in style usage"]}
+{"type":"entity","name":"Design_System_Documentation_Generator","entityType":"Feature","observations":["Medium priority, high complexity feature","To be implemented in Phase 2","Depends on Phase 1 features","Automatically generates documentation for design systems"]}
+{"type":"entity","name":"Text_Formatter","entityType":"Feature","observations":["High priority, low complexity feature","To be implemented in Phase 2","Enhances existing text manipulation functions","Advanced text formatting capabilities"]}
+{"type":"entity","name":"Text_Variables","entityType":"Feature","observations":["Medium priority, medium complexity feature","To be implemented in Phase 2","Enables text content variations","Connected to Text Formatter feature"]}
+{"type":"entity","name":"SVG_Editor","entityType":"Feature","observations":["High priority, medium complexity feature","To be implemented in Phase 3","SVG parsing and editing in a dedicated module","Enables editing of SVG properties"]}
+{"type":"entity","name":"Asset_Export_Manager","entityType":"Feature","observations":["High priority, medium complexity feature","To be implemented in Phase 3","Extends existing export functionality with more options","For batch exporting assets"]}
+{"type":"entity","name":"Bulk_Image_Optimizer","entityType":"Feature","observations":["Medium priority, medium complexity feature","To be implemented in Phase 3","For optimizing multiple images","Reduces file size while maintaining quality"]}
+{"type":"entity","name":"Smart_Resizing","entityType":"Feature","observations":["Medium priority, medium complexity feature","To be implemented in Phase 3","Depends on Auto Layout Controls","Intelligent resizing behavior for elements"]}
+{"type":"entity","name":"Code_Export_Enhancement","entityType":"Feature","observations":["High priority, high complexity feature","To be implemented in Phase 4","Exports design to code in various formats","Starting with CSS/HTML, expanding to framework-specific code"]}
+{"type":"entity","name":"Responsive_Specification","entityType":"Feature","observations":["Medium priority, medium complexity feature","To be implemented in Phase 4","Leverages existing node examination functionality","Documents responsive behavior of designs"]}
+{"type":"entity","name":"Comment_Feedback_Manager","entityType":"Feature","observations":["Medium priority, medium complexity feature","To be implemented in Phase 4","For managing and tracking feedback","Organizes feedback in a structured way"]}
+{"type":"entity","name":"Handoff_Assistant","entityType":"Feature","observations":["Medium priority, high complexity feature","To be implemented in Phase 4","Depends on Code Export","Helps with designer-developer handoff"]}
+{"type":"entity","name":"Color_Contrast_Analyzer","entityType":"Feature","observations":["High priority, medium complexity feature","To be implemented in Phase 5","Implements WCAG contrast calculation algorithms","Checks color contrast for accessibility"]}
+{"type":"entity","name":"Accessibility_Checker","entityType":"Feature","observations":["High priority, high complexity feature","To be implemented in Phase 5","Depends on Color Contrast Analyzer","Comprehensive accessibility testing"]}
+{"type":"entity","name":"Accessibility_Documentation","entityType":"Feature","observations":["Medium priority, medium complexity feature","To be implemented in Phase 5","Depends on Accessibility Checker","Generates documentation about accessibility"]}
+{"type":"entity","name":"JSON_CSV_Data_Binding","entityType":"Feature","observations":["High priority, medium complexity feature","To be implemented in Phase 5","Creates a data connector system for multiple formats","Connects designs with external data"]}
+{"type":"entity","name":"Content_Population","entityType":"Feature","observations":["Medium priority, medium complexity feature","To be implemented in Phase 5","Depends on JSON/CSV Data Binding","Populates designs with real content"]}
+{"type":"entity","name":"State_Manager","entityType":"Feature","observations":["High priority, high complexity feature","To be implemented in Phase 6","Develops a robust state tracking system","For handling component states"]}
+{"type":"entity","name":"Smart_Transitions","entityType":"Feature","observations":["Medium priority, high complexity feature","To be implemented in Phase 6","For creating animations between states","Enables transition previews"]}
+{"type":"entity","name":"Animation_Sequencer","entityType":"Feature","observations":["Medium priority, very high complexity feature","To be implemented in Phase 6","Depends on Smart Transitions","For creating complex animation sequences"]}
+{"type":"entity","name":"File_Optimizer","entityType":"Feature","observations":["High priority, medium complexity feature","To be implemented in Phase 6","For reducing file size and improving performance","Optimizes various aspects of Figma files"]}
+{"type":"entity","name":"Layer_Organization","entityType":"Feature","observations":["Medium priority, medium complexity feature","To be implemented in Phase 6","For organizing and managing layers","Improves file structure and naming"]}
+{"type":"entity","name":"Content_Generation","entityType":"Feature","observations":["High priority, high complexity feature","To be implemented in Phase 7","AI-based content generation","Starts with simpler NLP before more complex AI"]}
+{"type":"entity","name":"Style_Inference","entityType":"Feature","observations":["Medium priority, very high complexity feature","To be implemented in Phase 7","For analyzing and inferring design styles","Serves as a foundation for AI-assisted layout suggestions"]}
+{"type":"entity","name":"AI_Assisted_Layout_Suggestions","entityType":"Feature","observations":["Medium priority, very high complexity feature","To be implemented in Phase 7","Depends on Style Inference","Suggests layout improvements using AI"]}
+{"type":"entity","name":"Third_Party_API_Integration","entityType":"Feature","observations":["High priority, medium complexity feature","To be implemented in Phase 7","Creates an integration framework for third-party services","Enables connections to external tools"]}
+{"type":"entity","name":"Version_Control_Integration","entityType":"Feature","observations":["Medium priority, high complexity feature","To be implemented in Phase 7","For version control of design files","Integrates with version control systems"]}
+{"type":"entity","name":"Analytics_Integration","entityType":"Feature","observations":["Medium priority, high complexity feature","To be implemented in Phase 7","For tracking usage and gathering insights","Integrates with analytics platforms"]}
+{"type":"entity","name":"Phase_1","entityType":"Implementation_Phase","observations":["Weeks 1-3","Core Foundation","Focus on Layout & Basic Element Management and Enhanced Component Management"]}
+{"type":"entity","name":"Phase_2","entityType":"Implementation_Phase","observations":["Weeks 4-6","Design System Foundations","Focus on Design System Tools and Text & Typography"]}
+{"type":"entity","name":"Phase_3","entityType":"Implementation_Phase","observations":["Weeks 7-9","Asset & Image Enhancement","Focus on Image & Asset Management and Additional Layout Features"]}
+{"type":"entity","name":"Phase_4","entityType":"Implementation_Phase","observations":["Weeks 10-12","Collaboration & Workflow","Focus on Developer Handoff and Collaboration Tools"]}
+{"type":"entity","name":"Phase_5","entityType":"Implementation_Phase","observations":["Weeks 13-15","Accessibility & Data Features","Focus on Accessibility and Data & Content"]}
+{"type":"entity","name":"Phase_6","entityType":"Implementation_Phase","observations":["Weeks 16-18","Animation & Interaction","Focus on Prototyping & Animation and Performance Tools"]}
+{"type":"entity","name":"Phase_7","entityType":"Implementation_Phase","observations":["Weeks 19-24","AI & Advanced Features","Focus on AI & Automation and Integration Features"]}
+{"type":"relation","from":"TalkToFigmaClaude","relationType":"contains","to":"FigmaPlugin"}
+{"type":"relation","from":"TalkToFigmaClaude","relationType":"contains","to":"MCP_Server"}
+{"type":"relation","from":"TalkToFigmaClaude","relationType":"contains","to":"Claude_Bridge"}
+{"type":"relation","from":"TalkToFigmaClaude","relationType":"contains","to":"Figma_Bridge"}
+{"type":"relation","from":"FigmaPlugin","relationType":"implements","to":"Auto_Layout_Controls"}
+{"type":"relation","from":"FigmaPlugin","relationType":"implements","to":"Component_Management"}
+{"type":"relation","from":"FigmaPlugin","relationType":"implements","to":"Text_Manipulation"}
+{"type":"relation","from":"FigmaPlugin","relationType":"implements","to":"Shape_Creation"}
+{"type":"relation","from":"FigmaPlugin","relationType":"implements","to":"Image_Handling"}
+{"type":"relation","from":"FigmaPlugin","relationType":"implements","to":"Node_Management"}
+{"type":"relation","from":"FigmaPlugin","relationType":"implements","to":"Design_Token_Management"}
+{"type":"relation","from":"FigmaPlugin","relationType":"implements","to":"Design_Strategy"}
+{"type":"relation","from":"FigmaPlugin","relationType":"partially implements","to":"Alignment_Distribution"}
+{"type":"relation","from":"FigmaPlugin","relationType":"partially implements","to":"Grid_Layout_Generator"}
+{"type":"relation","from":"FigmaPlugin","relationType":"partially implements","to":"Component_Property_Batch_Editor"}
+{"type":"relation","from":"FigmaPlugin","relationType":"partially implements","to":"Enhanced_Component_Library_Browser"}
+{"type":"relation","from":"MCP_Server","relationType":"coordinates","to":"FigmaPlugin"}
+{"type":"relation","from":"MCP_Server","relationType":"connects with","to":"Claude_Bridge"}
+{"type":"relation","from":"Claude_Bridge","relationType":"communicates with","to":"MCP_Server"}
+{"type":"relation","from":"Figma_Bridge","relationType":"abstracts","to":"FigmaPlugin"}
+{"type":"relation","from":"Component_Management","relationType":"related to","to":"Enhanced_Component_Library_Browser"}
+{"type":"relation","from":"Auto_Layout_Controls","relationType":"dependency for","to":"Smart_Resizing"}
+{"type":"relation","from":"Design_Token_Management","relationType":"related to","to":"Design_Token_Converter"}
+{"type":"relation","from":"Text_Manipulation","relationType":"related to","to":"Text_Formatter"}
+{"type":"relation","from":"Text_Formatter","relationType":"related to","to":"Text_Variables"}
+{"type":"relation","from":"Image_Handling","relationType":"related to","to":"Asset_Export_Manager"}
+{"type":"relation","from":"Image_Handling","relationType":"related to","to":"Bulk_Image_Optimizer"}
+{"type":"relation","from":"Node_Management","relationType":"related to","to":"Layer_Organization"}
+{"type":"relation","from":"Code_Export_Enhancement","relationType":"dependency for","to":"Handoff_Assistant"}
+{"type":"relation","from":"Color_Contrast_Analyzer","relationType":"dependency for","to":"Accessibility_Checker"}
+{"type":"relation","from":"Accessibility_Checker","relationType":"dependency for","to":"Accessibility_Documentation"}
+{"type":"relation","from":"JSON_CSV_Data_Binding","relationType":"dependency for","to":"Content_Population"}
+{"type":"relation","from":"Smart_Transitions","relationType":"dependency for","to":"Animation_Sequencer"}
+{"type":"relation","from":"Style_Inference","relationType":"dependency for","to":"AI_Assisted_Layout_Suggestions"}
+{"type":"relation","from":"Phase_1","relationType":"includes","to":"Auto_Layout_Controls"}
+{"type":"relation","from":"Phase_1","relationType":"includes","to":"Alignment_Distribution"}
+{"type":"relation","from":"Phase_1","relationType":"includes","to":"Grid_Layout_Generator"}
+{"type":"relation","from":"Phase_1","relationType":"includes","to":"Component_Management"}
+{"type":"relation","from":"Phase_1","relationType":"includes","to":"Enhanced_Component_Library_Browser"}
+{"type":"relation","from":"Phase_1","relationType":"includes","to":"Component_Property_Batch_Editor"}
+{"type":"relation","from":"Phase_2","relationType":"includes","to":"Design_Token_Converter"}
+{"type":"relation","from":"Phase_2","relationType":"includes","to":"Style_Auditing"}
+{"type":"relation","from":"Phase_2","relationType":"includes","to":"Design_System_Documentation_Generator"}
+{"type":"relation","from":"Phase_2","relationType":"includes","to":"Text_Formatter"}
+{"type":"relation","from":"Phase_2","relationType":"includes","to":"Text_Variables"}
+{"type":"relation","from":"Phase_3","relationType":"includes","to":"SVG_Editor"}
+{"type":"relation","from":"Phase_3","relationType":"includes","to":"Asset_Export_Manager"}
+{"type":"relation","from":"Phase_3","relationType":"includes","to":"Bulk_Image_Optimizer"}
+{"type":"relation","from":"Phase_3","relationType":"includes","to":"Smart_Resizing"}
+{"type":"relation","from":"Phase_4","relationType":"includes","to":"Code_Export_Enhancement"}
+{"type":"relation","from":"Phase_4","relationType":"includes","to":"Responsive_Specification"}
+{"type":"relation","from":"Phase_4","relationType":"includes","to":"Comment_Feedback_Manager"}
+{"type":"relation","from":"Phase_4","relationType":"includes","to":"Handoff_Assistant"}
+{"type":"relation","from":"Phase_5","relationType":"includes","to":"Color_Contrast_Analyzer"}
+{"type":"relation","from":"Phase_5","relationType":"includes","to":"Accessibility_Checker"}
+{"type":"relation","from":"Phase_5","relationType":"includes","to":"Accessibility_Documentation"}
+{"type":"relation","from":"Phase_5","relationType":"includes","to":"JSON_CSV_Data_Binding"}
+{"type":"relation","from":"Phase_5","relationType":"includes","to":"Content_Population"}
+{"type":"relation","from":"Phase_6","relationType":"includes","to":"State_Manager"}
+{"type":"relation","from":"Phase_6","relationType":"includes","to":"Smart_Transitions"}
+{"type":"relation","from":"Phase_6","relationType":"includes","to":"Animation_Sequencer"}
+{"type":"relation","from":"Phase_6","relationType":"includes","to":"File_Optimizer"}
+{"type":"relation","from":"Phase_6","relationType":"includes","to":"Layer_Organization"}
+{"type":"relation","from":"Phase_7","relationType":"includes","to":"Content_Generation"}
+{"type":"relation","from":"Phase_7","relationType":"includes","to":"Style_Inference"}
+{"type":"relation","from":"Phase_7","relationType":"includes","to":"AI_Assisted_Layout_Suggestions"}
+{"type":"relation","from":"Phase_7","relationType":"includes","to":"Third_Party_API_Integration"}
+{"type":"relation","from":"Phase_7","relationType":"includes","to":"Version_Control_Integration"}
+{"type":"relation","from":"Phase_7","relationType":"includes","to":"Analytics_Integration"}
+{"type":"relation","from":"FigmaPlugin","to":"Alignment_Distribution","relationType":"implements"}
+{"type":"relation","from":"FigmaPlugin","to":"Grid_Layout_Generator","relationType":"implements"}
+{"type":"relation","from":"FigmaPlugin","to":"Component_Property_Batch_Editor","relationType":"implements"}
